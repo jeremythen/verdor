@@ -1,0 +1,410 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <title>Porcentaje de Verdor</title>
+<style>
+
+#control-container, #canvas-container {
+    display: flex;
+    justify-content: center;
+    align-content: center;
+}
+#canvas-container, #img-container {
+    padding: 10px;
+}
+#img-container {
+    margin: auto;
+    width: 600px;
+}
+
+#canvas {
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 5px 5px 5px rgba(86, 86, 86, 0.3);
+}
+
+#img2 {
+    width: 600px;
+    height: auto;
+}
+
+#select-pixel-color {
+    width: 38px;
+    height: 34px;
+    border: none;
+    background-color: #ffff;
+    cursor: none;
+}
+
+
+#status-container, #color-palette-main-container {
+    margin: 20px 0 80px 10px;
+    display: flex;
+}
+#status-container > *, #color-palette-main-container > * {
+    margin: 10px;
+    font-size: 18px;
+}
+
+
+#color-palette-container, #removed-color-palette-container {
+    width: 302px;
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid #4c4c4c;
+    overflow: hidden;
+}
+
+.p-color-elems {
+    width: 100px;
+    height: 40px;
+    border: 1px solid #e5e5e5;
+    cursor: pointer;
+}
+
+.action-buttons-container {
+    margin: auto;
+    width: 500px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+#exclude-white {
+    cursor: pointer;
+}
+
+</style>
+</head>
+<body>
+
+<img src="" alt="" id="img1" hidden="true">
+
+<div id="main-contain">
+
+    <div class="container">
+        <div id="img-container" class="container">
+            <img src="" id="img2">
+        </div>
+    
+        <div id="canvas-container" class="container">
+            <canvas id="canvas" width="600" height="300"></canvas>
+        </div>
+    </div>
+    <div class="container action-buttons-container">
+        <button type="button" id="calculate" class="btn btn-info" title="Calcular">Go!</button>
+        <button type="button" id="revert" class="btn btn-primary fa fa-undo" title="Revertir"></button>
+        <button type="button" id="select-pixel-button" class="btn btn-secondary fa fa-eyedropper" title="Click para seleccionar el color de un área determinada de la imagen."></button>
+        <button type="button" id="select-pixel-color" class="btn"></button>
+        <label class="btn btn-default">Subir Imagen<input type="file" id="addImage" name="img" accept="image/*" hidden></label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="exclude-white" checked>
+            <label class="form-check-label" for="exclude-white" title="Evita poner el color blanco durante el cálculo">Excluir blanco</label>
+        </div>
+    </div>
+</div>
+
+<div id="status-container">
+    <div id="result-container">
+        <div id="vegetation">
+            <span>Vegetación: </span><span id="vegetation-span"></span>
+        </div>
+        <div id="other">
+            <span>Otro: </span><span id="other-span"></span>
+        </div>
+    </div>
+</div>
+
+<div id="color-palette-main-container">
+    <div id="color-palette-container" data-active="active"></div>
+    <div id="removed-color-palette-container" data-active="disabled"></div>
+</div>
+    
+<script>
+
+"usestrict";
+
+const img = document.getElementById('img1');
+const img2 = document.getElementById('img2');
+const revertButton = document.getElementById('revert');
+const addImage = document.getElementById('addImage');
+const calculateButton = document.getElementById('calculate');
+const colorPaletteContainer = document.getElementById('color-palette-container');
+const excludeWhiteCheckbox = document.getElementById("exclude-white");
+const selectedPixelObj = {r: 0, g: 0, b: 0, a: 255};
+const showSelectedPixelColorButton = $('#select-pixel-color');
+let canvas;
+let isClicked = false;
+let ctx;
+let imageData;
+let imageLoaded = false;
+let colorObjArray = [];
+
+revertButton.addEventListener('click', () => {
+    if(!imageLoaded) {
+        alert('Elija una imagen primero.');
+        return;
+    }
+    ctx.drawImage(img, 0, 0);
+});
+
+function putDrawnImageOnCanvas() {
+    let tempImg = document.createElement('img');
+    let data = canvas.toDataURL('other/png');
+    tempImg.src = data;
+    ctx.drawImage(tempImg, 0, 0);
+}
+
+calculateButton.addEventListener('click', () => {
+    if(!imageLoaded) {
+        alert('Elija una imagen primero.');
+        return;
+    }
+    putDrawnImageOnCanvas();
+    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const colorCountObj = findAndMarkPixelsWithinAllowedGreenRange(canvas, ctx);
+    showVegetationPercentage(colorCountObj);
+});
+
+addImage.addEventListener('change', function() {
+    let reader = new FileReader();
+    let file = addImage.files[0];
+    reader.onloadend = () => {
+      img.src = reader.result;
+    }
+    reader.readAsDataURL(file)
+});
+
+img.addEventListener('load', loadCanvasImage);
+
+function loadCanvasImage() {
+    prepareCanvas();
+    imageLoaded = true;
+    img2.src = img.src;
+}
+
+function prepareCanvas() {
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+}
+
+// Goes pixel by pixel on the canvas checking which pixel has a color to be considered vegetation or included.
+function findAndMarkPixelsWithinAllowedGreenRange(canvas, ctx) {
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let greenColorPixelCount = 0;
+    let otherColorPixelCount = 0;
+    let imgDataLength = imgData.data.length;
+    const isNotWhitePixel = (r, g, b) => (r !== 255) && (g !== 255) && (b !== 255);
+    const isWithinAllowedRangeGreenColor = (r, g, b) => {
+        return colorObjArray.some(color => {
+            let r2 = color.r;
+            let g2 = color.g;
+            let b2 = color.b;
+            return  (r >= (r2 - 10) && r <= (r2 + 10)) && 
+                    (g >= (g2 - 10) && g <= (g2 + 10)) && 
+                    (b >= (b2 - 10) && b <= (b2 + 10))
+        });
+    };
+    const setCurrentPixelToGreen = (i) => {
+        imgData.data[i] = 0;
+        imgData.data[i + 1] = 255;
+        imgData.data[i + 2] = 0;
+    }
+    const setCurrentPixelToWhite = (i) => {
+        imgData.data[i] = 255;
+        imgData.data[i + 1] = 255;
+        imgData.data[i + 2] = 255;
+    }
+    for (let i = 0; i < imgDataLength; i += 4) {
+        const r = imgData.data[i];
+        const g = imgData.data[i + 1];
+        const b = imgData.data[i + 2];
+        let isCurrentPixelWithinAllowedGreenRange = false;
+        if(isNotWhitePixel(r, g, b)) {
+            otherColorPixelCount++;
+            if (isWithinAllowedRangeGreenColor(r, g, b)) {
+                setCurrentPixelToGreen(i);
+                greenColorPixelCount++;
+                isCurrentPixelWithinAllowedGreenRange = true;
+            }
+        }
+        if(!isCurrentPixelWithinAllowedGreenRange && !excludeWhiteCheckbox.checked) {
+            setCurrentPixelToWhite(i);
+        }
+    }
+    ctx.putImageData(imgData, 0, 0);
+    return { otherColorPixelCount, greenColorPixelCount };
+    
+}
+
+function showVegetationPercentage({ otherColorPixelCount, greenColorPixelCount }) {
+    otherColorPixelCount -= greenColorPixelCount;
+    console.info('Green count', greenColorPixelCount);
+    console.info('Other count', otherColorPixelCount);
+    let average = (greenColorPixelCount / (otherColorPixelCount + greenColorPixelCount)) * 100;
+    average = Math.round(average * 100) / 100;
+    console.info('Average', average);
+    $('#vegetation-span').text(`${average}%`);
+    $('#other-span').text(`${Math.round((100 - average) * 100) / 100}%`);
+}
+
+
+// Base green color examples for the algorithm
+function getColorsToSearchFor() {
+    let colors = [];
+    colors.push({ r: 3, g: 42, b: 3, a: 255});
+    colors.push({ r: 4, g: 18, b: 3, a: 255});
+    colors.push({ r: 66, g: 129, b: 19, a: 255});
+    colors.push({ r: 36, g: 98, b: 26, a: 255});
+    colors.push({ r: 56, g: 146, b: 26, a: 255});
+    colors.push({ r: 50, g: 178, b: 4, a: 255});
+    colors.push({ r: 91, g: 137, b: 53, a: 255});
+    colors.push({ r: 49, g: 110, b: 11, a: 255});
+    colors.push({ r: 16, g: 56, b: 5, a: 255});
+    colors.push({ r: 8, g: 123, b: 1, a: 255});
+    colors.push({ r: 50, g: 82, b: 38, a: 255});
+    colors.push({ r: 27, g: 35, b: 19, a: 255});
+    colors.push({ r: 121, g: 192, b: 31, a: 255});
+    colors.push({ r: 90, g: 157, b: 7, a: 255});
+    colors.push({ r: 83, g: 181, b: 12, a: 255});
+    colors.push({ r: 13, g: 69, b: 9, a: 255});
+    colors.push({ r: 18, g: 36, b: 35, a: 255});
+    colors.push({ r: 32, g: 46, b: 40, a: 255});
+    colors.push({ r: 45, g: 62, b: 55, a: 25,});
+    colors.push({ r: 26, g: 40, b: 41, a: 255});
+    colors.push({ r: 34, g: 58, b: 52, a: 255});
+    colors.push({ r: 69, g: 60, b: 61, a: 255,});
+    colors.push({ r: 61, g: 78, b: 85, a: 255});
+    colors.push({ r: 51, g: 62, b: 68, a: 255});
+    colors.push({ r: 38, g: 65, b: 74, a: 255});
+    colors.push({ r: 70, g: 70, b: 72, a: 255});
+    colors.push({ r: 30, g: 57, b: 66, a: 255});
+    return colors;
+}
+
+function fillColorPaletteContainer() {
+    colorObjArray.forEach(color => {
+        const rgb = `RGB(${color.r}, ${color.g}, ${color.b})`;
+        let paletteColorElement = $(`
+                <p style="background-color: ${rgb};"
+                    class="p-color-elems"
+                    title="Click para eliminar"
+                />
+            `);
+        paletteColorElement[0].colorObj = color;
+        paletteColorElement.click(togglePaletteColor);
+        $(colorPaletteContainer).append(paletteColorElement);
+    });  
+}
+
+function togglePaletteColor() {
+    const colorElem = this;
+    const colorElemParent = colorElem.parentNode;
+    const containerAttr = colorElemParent.getAttribute('data-active');
+    if(containerAttr === 'active') {
+        const removedColorPaletteContainer = document.getElementById('removed-color-palette-container');
+        removeFromColorObjArray(colorElem.colorObj);
+        removedColorPaletteContainer.appendChild(colorElem);
+        colorElem.setAttribute('title', 'Click para agregar.');
+    }else{
+        addToColorObjArray(colorElem.colorObj);
+        colorPaletteContainer.appendChild(colorElem);
+        colorElem.setAttribute('title', 'Click para eliminar.');
+    }
+}
+
+function initColorObjArray() {
+    colorObjArray = getColorsToSearchFor();
+}
+
+function addToColorObjArray(obj) {
+    colorObjArray.push(obj);
+}
+
+function removeFromColorObjArray(obj) {
+    const index = colorObjArray.indexOf(obj);
+    if(index > -1) {
+        colorObjArray.splice(index, 1);
+    }
+}
+
+initColorObjArray();
+fillColorPaletteContainer();
+loadCanvasImage();
+let toggleSelectPixelButtonActive = false;
+
+$('#select-pixel-button').click(function() {
+    let me = this;
+    toggleSelectPixelButtonActive = !toggleSelectPixelButtonActive;
+    if(toggleSelectPixelButtonActive) {
+        $(me).addClass('select-pixel-active');
+        $(canvas).on('mousemove', canvasMouseMove);
+        $(canvas).on('click', selectPixelValue);
+        $('#calculate').attr('disabled', true);
+    }else{
+        $(me).removeClass('select-pixel-active');
+        $(canvas).off('mousemove', canvasMouseMove);
+        $(canvas).off('click', selectPixelValue);
+        $('#calculate').attr('disabled', false);
+        showSelectedPixelColorButton.css('background-color','#fff');
+    }
+});
+
+
+function selectPixelValue() {
+    let r = selectedPixelObj.r;
+    let g = selectedPixelObj.g;
+    let b = selectedPixelObj.b;
+    pixelObj = {r, g, b, a: 255};
+    colorObjArray.push(pixelObj);
+    const rgb = `RGB(${r}, ${g}, ${b})`;
+    let paletteColorElement = $(`
+            <p style="background-color: ${rgb};"
+                class="p-color-elems"
+                title="Click para eliminar"
+            />
+        `);
+    paletteColorElement.click(togglePaletteColor);
+    $(colorPaletteContainer).append(paletteColorElement);
+        
+}
+function canvasMouseMove(e) {
+    const canvas = this;
+    const pos = findPositionForMousePointerOnCanvas(canvas);
+    const x = e.pageX - pos.x;
+    const y = e.pageY - pos.y;
+    const pixelVal = ctx.getImageData(x, y, 1, 1).data;
+    const r = pixelVal[0];
+    const g = pixelVal[1];
+    const b = pixelVal[2];
+    selectedPixelObj.r = r;
+    selectedPixelObj.g = g;
+    selectedPixelObj.b = b;
+    const rgb = `RGB(${r}, ${g}, ${b})`;
+    showSelectedPixelColorButton.css('background-color', rgb);
+}
+function findPositionForMousePointerOnCanvas(canvas) {
+    let canvasParent = canvas;
+    let left = 0;
+    let top = 0;
+    if (canvas.offsetParent) {
+        do {
+            left += canvasParent.offsetLeft;
+            top += canvasParent.offsetTop;
+        } while (canvasParent = canvasParent.offsetParent);
+        return {x: left, y: top};
+    }
+}
+</script>
+
+</body>
+</html>
