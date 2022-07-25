@@ -80,6 +80,10 @@
     cursor: pointer;
 }
 
+#vegetation, #other {
+    text-align: center;
+}
+
 </style>
 </head>
 <body>
@@ -98,20 +102,20 @@
         </div>
     </div>
     <div class="container action-buttons-container">
-        <button type="button" id="calculate" class="btn btn-info" title="Calcular">Go!</button>
+        <button type="button" id="calculate" class="btn btn-info" title="Calcular">Calcular!</button>
         <button type="button" id="revert" class="btn btn-primary fa fa-undo" title="Revertir"></button>
         <button type="button" id="select-pixel-button" class="btn btn-secondary fa fa-eyedropper" title="Click para seleccionar el color de un área determinada de la imagen."></button>
         <button type="button" id="select-pixel-color" class="btn"></button>
         <label class="btn btn-default">Subir Imagen<input type="file" id="addImage" name="img" accept="image/*" hidden></label>
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" id="exclude-white" checked>
-            <label class="form-check-label" for="exclude-white" title="Evita poner el color blanco durante el cálculo">Excluir blanco</label>
+            <label class="form-check-label" for="exclude-white" title="Si está seleccionado, no se reemplazan por blanco los pixeles detectados como no vegetación, si no que se dejan como estaban. Ideal para observar qué no ha sido incluído y debió ser incluido.">Excluir blanco</label>
         </div>
     </div>
 </div>
 
 <div id="status-container">
-    <div id="result-container">
+    <div id="result-container" class="container">
         <div id="vegetation">
             <span>Vegetación: </span><span id="vegetation-span"></span>
         </div>
@@ -121,6 +125,23 @@
     </div>
 </div>
 
+
+
+<div>
+    <h3>Paleta de colores de guía</h3>
+    <p>Esta paleta de colores es usada para indicarle al algoritmo qué rango de colores debería de considerar vegetación.
+        A la izquiera tenemos unas muestras de colores comunes de vegentación en una imagen satelital de Google Earth.
+    </p>
+    <p>
+        Si notamos que el algoritmo está contando como vegetación un color de estos que no debería, entonces podemos dar click sobre el color y se moverá a la paleta del lado derecho,
+        la cual representa el rango de colores en los pixeles que el algoritmo ignorará. Para sacarlos de la paleta de la derecha solo tenemos que dar click de nuevo y volverá a la izquiera.
+        Si queremos quitar los colores extra que hemos agregado de ambas paletas, entonces necesitamos volver a cargar esta página. 
+    </p>
+    <p>
+        Para agregar más colores que observamos que deberían ser incluídos, entonces podemos dar click en el ícono del gotero que está arriba, paseamos el mouse por encima de la imagen en el canvas
+        y esto nos mostrará en un cuadrito el color del pixel actual en donde está el mouse. Le damos click y se agregará ese color a la paleta de colores de la izquiera, listo para que el algoritmo lo incluya en su búsqueda.
+    </p>
+</div>
 <div id="color-palette-main-container">
     <div id="color-palette-container" data-active="active"></div>
     <div id="removed-color-palette-container" data-active="disabled"></div>
