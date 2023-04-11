@@ -4,7 +4,11 @@ Herramienta para calcular el porcentaje de vegetación en una imagen satelital
 
 ![Verdor](/assets/Verdor.png)
 
+
+
 ## Uso
+
+Puedes usar la herramienta online aquí: [https://raw.githack.com/jeremythen/verdor/main/verdor.html](https://raw.githack.com/jeremythen/verdor/main/verdor.html)
 
 Para usar este algoritmo, necesitamos cargar una imagen satelital, preferiblemente de Google Earth. A una altura recomendada entre 300 metros y 2000 metros.
 
