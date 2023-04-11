@@ -226,12 +226,17 @@ includeAllFromPalete.on('click', () => {
     }
 });
 
+const revert = () => {
+    ctx.drawImage(img, 0, 0);
+    imageLoaded = true;
+};
+
 revertButton.addEventListener('click', () => {
     if(!imageLoaded) {
         alert('Elija una imagen primero.');
         return;
     }
-    ctx.drawImage(img, 0, 0);
+    revert();
 });
 
 function putDrawnImageOnCanvas() {
@@ -246,6 +251,7 @@ calculateButton.addEventListener('click', () => {
         alert('Elija una imagen primero.');
         return;
     }
+    revert();
     putDrawnImageOnCanvas();
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const colorCountObj = findAndMarkPixelsWithinAllowedGreenRange(canvas, ctx);
@@ -454,6 +460,7 @@ function selectPixelValue() {
             />
         `);
     paletteColorElement.click(togglePaletteColor);
+    paletteColorElement[0].colorObj = pixelObj;
     $(colorPaletteContainer).append(paletteColorElement);
         
 }
