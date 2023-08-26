@@ -95,6 +95,60 @@
     margin: 20px auto;
 }
 
+
+#delete-pad-container > * {
+    cursor: pointer;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #e2e2e2;
+}
+
+#delete-pad-container {
+    display: flex;
+    border: 1px solid #727272;
+    height: 40px;
+    width: 85px;
+    padding: 0;
+}
+
+#delete-pad-button-container {
+    font-size: 20px;
+}
+
+#delete-pad-button {
+    width: 100%;
+    height: 100%;
+    font-size: 18px;
+    border: none;
+    padding: 0 4px;
+    background-color: #e2e2e2;
+    cursor: pointer;
+}
+
+#delete-pad-button:hover {
+    background-color: #c4c4c4;
+}
+
+
+#delete-pad-select-container {
+    width: 25px;
+    height: 100%;
+    padding: 1px 4px;
+}
+
+#delete-pad-select-container {
+    border-left: 1px solid #c4c4c4;
+}
+
+#delete-pad-select-container > * {
+     color: #919191;
+ }
+
+ #delete-pad-select-container > *:hover {
+     color: #444444;
+ }
+
 </style>
 </head>
 <body>
@@ -122,6 +176,21 @@
             <input class="form-check-input" type="checkbox" id="exclude-white" checked>
             <label class="form-check-label" for="exclude-white" title="Si está seleccionado, no se reemplazan por blanco los pixeles detectados como no vegetación, si no que se dejan como estaban. Ideal para observar qué no ha sido incluído y debió ser incluido.">Excluir blanco</label>
         </div>
+
+        <button id="square-button" class="btn btn-primary" hidden >Cuadrado</button>
+        <button id="circle-button" class="btn btn-primary" hidden >Círculo</button>
+
+        <div id="delete-pad-container">
+            <div id="delete-pad-button-container">
+                <button id="delete-pad-button" class="canvas-buttons">Borrar</button>
+            </div>
+
+            <div id="delete-pad-select-container">
+                <i class="fa fa-plus" data-size="plus"></i>
+                <i class="fa fa-minus" data-size="minus"></i>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -200,6 +269,29 @@ let imageData;
 let imageLoaded = false;
 let colorObjArray = [];
 
+let prevX = 0;
+let prevY = 0;
+let currX = 0;
+let currY = 0;
+
+let hasDrawnOnCanvas = false;
+
+$('#delete-pad-select-container i').click(handleCtxSize);
+
+function handleCtxSize() {
+    const me = this;
+    let attr = $(me).attr('data-size');
+    let currentLineWidth = ctx.lineWidth;
+    console.log('currentLineWidth: ', currentLineWidth)
+    console.log('attr: ', attr)
+    if(attr === 'plus') {
+        ctx.lineWidth = currentLineWidth + 10;
+    } else {
+        let newLineWidth = (currentLineWidth - 10);
+        ctx.lineWidth = newLineWidth <= 0 ? 1: newLineWidth;
+    }
+}
+
 removeAllFromPaleteButton.on('click', () => {
     const colorPaletteContainer = $('#color-palette-container');
     const removedColorPaletteContainer = $('#removed-color-palette-container');
@@ -229,6 +321,7 @@ includeAllFromPalete.on('click', () => {
 const revert = () => {
     ctx.drawImage(img, 0, 0);
     imageLoaded = true;
+    hasDrawnOnCanvas = false;
 };
 
 revertButton.addEventListener('click', () => {
@@ -251,8 +344,10 @@ calculateButton.addEventListener('click', () => {
         alert('Elija una imagen primero.');
         return;
     }
-    revert();
-    putDrawnImageOnCanvas();
+    if(!hasDrawnOnCanvas) {
+        revert();
+        putDrawnImageOnCanvas();
+    }
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const colorCountObj = findAndMarkPixelsWithinAllowedGreenRange(canvas, ctx);
     showVegetationPercentage(colorCountObj);
@@ -275,11 +370,70 @@ function loadCanvasImage() {
     img2.src = img.src;
 }
 
+function handleMouse(e) {
+
+    if(isClicked) {
+
+        hasDrawnOnCanvas = true;
+
+        currX = e.layerX - canvas.offsetLeft;
+        currY = e.layerY - canvas.offsetTop;
+
+        if(prevX === 0 || prevY === 0) {
+            prevX = currX;
+            prevY = currY;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(prevX, prevY);
+        ctx.lineTo(currX, currY);
+        ctx.stroke();
+        ctx.closePath();
+
+        prevX = currX;
+        prevY = currY;
+
+    }
+}
+
+function setLineWidth(width) {
+    ctx.lineWidth = width;
+}
+
+function setLineCap(lineCap) {
+    ctx.lineCap = lineCap;
+}
+
+function setStrokeStyle(strokeStyle) {
+    ctx.strokeStyle = strokeStyle;
+}
+
 function prepareCanvas() {
     canvas = document.getElementById('canvas');
+    
+    canvas.addEventListener('mousedown', function() {
+        isClicked = true;
+    });
+
+    canvas.addEventListener('mouseup', function() {
+        isClicked = false;
+        prevX = 0;
+        prevY = 0;
+        currX = 0;
+        currY = 0;
+    });
+
+    canvas.addEventListener('mousemove', handleMouse);
+
     ctx = canvas.getContext('2d');
+
     canvas.width = img.width;
     canvas.height = img.height;
+
+    setLineWidth(3);
+    setLineCap('round');
+    setStrokeStyle('white');
+
     ctx.drawImage(img, 0, 0);
 }
 
