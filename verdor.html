@@ -1,497 +1,2002 @@
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-    <title>Porcentaje de Verdor</title>
-<style>
+    <title>Verdor — Porcentaje de vegetación</title>
+    <style>
+        :root {
+            --bg: #0f1410;
+            --surface: #1a221c;
+            --surface2: #243028;
+            --border: #3a4f42;
+            --text: #e8f0ea;
+            --muted: #8fa898;
+            --accent: #3ddc84;
+            --accent-dim: #2a9d5c;
+            --danger: #e85d5d;
+            --warning: #e8b84d;
+            --radius: 10px;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        }
 
-#control-container, #canvas-container {
-    display: flex;
-    justify-content: center;
-    align-content: center;
-}
-#canvas-container, #img-container {
-    padding: 10px;
-}
-#img-container {
-    margin: auto;
-    width: 600px;
-}
+        *, *::before, *::after { box-sizing: border-box; }
 
-#canvas {
-    border: 1px solid #e5e5e5;
-    box-shadow: 0 5px 5px 5px rgba(86, 86, 86, 0.3);
-}
+        body {
+            margin: 0;
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
 
-#img2 {
-    width: 600px;
-    height: auto;
-}
+        header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #152019 0%, var(--bg) 100%);
+        }
 
-#select-pixel-color {
-    width: 38px;
-    height: 34px;
-    border: none;
-    background-color: #ffff;
-    cursor: none;
-}
+        header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
 
+        header h1 span { color: var(--accent); }
 
-#status-container, #color-palette-main-container {
-    margin: 20px 0 80px 10px;
-    display: flex;
-}
-#status-container > *, #color-palette-main-container > * {
-    margin: 10px;
-    font-size: 18px;
-}
+        header p {
+            margin: 0.35rem 0 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
 
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1.25rem 1rem 3rem;
+        }
 
-#color-palette-container, #removed-color-palette-container {
-    width: 302px;
-    display: flex;
-    flex-wrap: wrap;
-    border: 1px solid #4c4c4c;
-    overflow: hidden;
-    height: auto;
-}
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.15rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
 
-.p-color-elems {
-    width: 100px;
-    height: 40px;
-    border: 1px solid #e5e5e5;
-    cursor: pointer;
-}
+        .panel h2 {
+            margin: 0 0 0.75rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            font-weight: 600;
+        }
 
-.action-buttons-container {
-    margin: auto;
-    width: 500px;
-}
+        .drop-zone {
+            display: block;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            color: var(--muted);
+        }
 
-[hidden] {
-  display: none !important;
-}
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent-dim);
+            background: rgba(61, 220, 132, 0.06);
+            color: var(--text);
+        }
 
-#exclude-white {
-    cursor: pointer;
-}
+        .drop-zone-text {
+            display: block;
+            margin: 0 0 0.4rem;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
 
-#vegetation, #other {
-    text-align: center;
-}
+        .drop-zone-hint {
+            display: block;
+            margin: 0;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            opacity: 0.9;
+        }
 
-#palete-buttons-container {
-    padding-top: 80px;
-}
+        .drop-zone strong { color: var(--accent); }
 
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
 
-#palete-buttons-container > button {
-    display: block;
-    margin: 20px auto;
-}
+        button, .btn-label {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text);
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
+            font-family: inherit;
+        }
 
-</style>
+        button:hover:not(:disabled), .btn-label:hover {
+            background: #2f4034;
+            border-color: var(--accent-dim);
+        }
+
+        button:active:not(:disabled) { transform: scale(0.98); }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        button.primary {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        button.primary:hover:not(:disabled) {
+            background: var(--accent);
+            color: #0f1410;
+        }
+
+        button.active {
+            outline: 2px solid var(--accent);
+            outline-offset: 1px;
+        }
+
+        button.danger { border-color: #8b3a3a; color: #ffb4b4; }
+
+        select, input[type="range"] {
+            accent-color: var(--accent);
+        }
+
+        select {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.875rem;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 0.65rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 140px;
+        }
+
+        .control-group label {
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .control-group label[title] {
+            cursor: help;
+        }
+
+        .control-group output {
+            font-size: 0.78rem;
+            color: var(--accent);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-label input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .stat-card {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card.other .value { color: #7eb8ff; }
+        .stat-card.excluded .value { color: var(--muted); font-size: 1.1rem; }
+
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 0.15rem;
+        }
+
+        #image-info {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-top: 0.5rem;
+        }
+
+        #image-info.warn { color: var(--warning); }
+
+        .canvas-section { text-align: center; }
+
+        .canvas-wrap {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            margin: 0 auto;
+            line-height: 0;
+        }
+
+        #canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        #overlay-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: var(--radius);
+            pointer-events: none;
+        }
+
+        #overlay-canvas.interactive {
+            pointer-events: auto;
+            cursor: crosshair;
+        }
+
+        .preview-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-box {
+            flex: 1;
+            min-width: 200px;
+            max-width: 320px;
+        }
+
+        .preview-box img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #000;
+        }
+
+        .preview-box figcaption {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 0.35rem;
+            text-align: center;
+        }
+
+        .compare-container {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .compare-container.visible { display: block; }
+
+        .compare-wrap {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            user-select: none;
+            touch-action: none;
+            line-height: 0;
+            cursor: ew-resize;
+        }
+
+        #compare-before {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #compare-after {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            clip-path: inset(0 50% 0 0);
+        }
+
+        .compare-slider {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 28px;
+            height: 100%;
+            background: transparent;
+            cursor: ew-resize;
+            z-index: 2;
+        }
+
+        .compare-slider::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            background: var(--accent);
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .compare-slider::after {
+            content: "◀ ▶";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--accent);
+            color: #0f1410;
+            font-size: 0.65rem;
+            padding: 0.35rem 0.25rem;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .compare-hint {
+            font-size: 0.78rem;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 0.4rem;
+        }
+
+        #progress-bar {
+            display: none;
+            height: 4px;
+            background: var(--surface2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        #progress-bar.visible { display: block; }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            transition: width 0.1s;
+        }
+
+        .eyedropper-group {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .eyedropper-group.active button {
+            outline: 2px solid var(--accent);
+            outline-offset: 1px;
+        }
+
+        .eyedropper-float {
+            position: fixed;
+            z-index: 10000;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.55rem;
+            background: rgba(15, 20, 16, 0.94);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+            white-space: nowrap;
+        }
+
+        .eyedropper-float.hidden {
+            display: none;
+        }
+
+        .eyedropper-float-swatch {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+
+        .eyedropper-float-rgb {
+            font-size: 0.75rem;
+            font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .eyedropper-float-rgb small {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--muted);
+            font-family: inherit;
+        }
+
+        .palette-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            width: min(100%, 306px);
+            min-height: 72px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            background:
+                repeating-conic-gradient(#666 0% 25%, #999 0% 50%) 50% / 14px 14px;
+        }
+
+        .palette-grid:empty::after {
+            content: "Sin colores — pulsa ↺ Paleta";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 72px;
+            padding: 0.5rem;
+            font-size: 0.78rem;
+            color: var(--text);
+            background: var(--surface2);
+        }
+
+        .palette-swatch {
+            width: 51px;
+            height: 36px;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+            cursor: pointer;
+            transition: transform 0.1s;
+            padding: 0;
+        }
+
+        .palette-swatch:hover {
+            transform: scale(1.08);
+            z-index: 1;
+            border-color: var(--accent);
+        }
+
+        .palette-columns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: flex-start;
+        }
+
+        .palette-col p {
+            margin: 0 0 0.35rem;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        .palette-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-top: 2rem;
+        }
+
+        .palette-presets {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .palette-presets-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: flex-end;
+            margin-top: 0.65rem;
+        }
+
+        .palette-presets-row .control-group {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        input.palette-input {
+            width: 100%;
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        input.palette-input:focus {
+            outline: none;
+            border-color: var(--accent-dim);
+        }
+
+        .palette-presets-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin: 0 0 0.75rem;
+        }
+
+        .help-text:last-child { margin-bottom: 0; }
+
+        .mode-classic-only { display: block; }
+        body[data-mode="exg"] .mode-classic-only,
+        body[data-mode="hsv"] .mode-classic-only { display: none; }
+
+        .hidden { display: none !important; }
+
+        .brush-legend {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin: 0.35rem 0 0;
+        }
+
+        .brush-legend-veg { color: #3ddc84; }
+        .brush-legend-nonveg { color: #e85d5d; }
+
+        #status-msg {
+            font-size: 0.85rem;
+            color: var(--muted);
+            min-height: 1.25rem;
+        }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.3rem; }
+            .control-group { min-width: 100%; }
+        }
+    </style>
 </head>
-<body>
+<body data-mode="classic">
 
-<img src="" alt="" id="img1" hidden="true">
+<img id="source-img" alt="" hidden>
 
-<div id="main-contain">
+<header>
+    <h1><span>Verdor</span> — vegetación en imágenes satelitales</h1>
+    <p>Calcula el porcentaje de cobertura vegetal en capturas de Google Earth u otras fuentes aéreas.</p>
+</header>
 
-    <div class="container">
-        <div id="img-container" class="container">
-            <img src="" id="img2">
-        </div>
-    
-        <div id="canvas-container" class="container">
-            <canvas id="canvas" width="600" height="300"></canvas>
-        </div>
-    </div>
-    <div class="container action-buttons-container">
-        <button type="button" id="calculate" class="btn btn-info" title="Calcular">Calcular!</button>
-        <button type="button" id="revert" class="btn btn-primary fa fa-undo" title="Revertir"></button>
-        <button type="button" id="select-pixel-button" class="btn btn-secondary fa fa-eyedropper" title="Click para seleccionar el color de un área determinada de la imagen."></button>
-        <button type="button" id="select-pixel-color" class="btn"></button>
-        <label class="btn btn-default">Subir Imagen<input type="file" id="addImage" name="img" accept="image/*" hidden></label>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="exclude-white" checked>
-            <label class="form-check-label" for="exclude-white" title="Si está seleccionado, no se reemplazan por blanco los pixeles detectados como no vegetación, si no que se dejan como estaban. Ideal para observar qué no ha sido incluído y debió ser incluido.">Excluir blanco</label>
-        </div>
-    </div>
-</div>
+<main>
+    <section class="panel">
+        <h2>Imagen</h2>
+        <input type="file" id="file-input" accept="image/*" hidden>
+        <label class="drop-zone" id="drop-zone" for="file-input">
+            <span class="drop-zone-text"><strong>Arrastra una imagen</strong> o haz clic para seleccionar</span>
+            <span class="drop-zone-hint">Recomendado: capturas entre 300 m y 2000 m de altura</span>
+        </label>
+        <p id="image-info"></p>
+    </section>
 
-<div id="status-container">
-    <div id="result-container" class="container">
-        <div id="vegetation">
-            <span>Vegetación: </span><span id="vegetation-span"></span>
+    <section class="panel">
+        <h2>Algoritmo y parámetros</h2>
+        <div class="toolbar">
+            <div class="control-group" style="min-width:180px">
+                <label for="algo-mode">Modo de detección</label>
+                <select id="algo-mode">
+                    <option value="classic">Clásico (paleta de colores)</option>
+                    <option value="exg">ExG — Excess Green (automático)</option>
+                    <option value="hsv">HSV — matiz verde (automático)</option>
+                </select>
+            </div>
         </div>
-        <div id="other">
-            <span>Otro: </span><span id="other-span"></span>
+        <div class="control-row">
+            <div class="control-group mode-classic-only" id="tolerance-group">
+                <label for="color-tolerance" title="Modo clásico: margen ±N en cada canal R, G y B al comparar un píxel con los colores de la paleta. Valor bajo = coincidencia estricta; valor alto = acepta más variaciones de tono (útil si la imagen tiene compresión o sombras).">Tolerancia RGB <output id="tolerance-out">10</output></label>
+                <input type="range" id="color-tolerance" min="3" max="40" value="10" title="Modo clásico: margen ±N en R, G y B respecto a cada color de la paleta. Más alto = detecta más píxeles como vegetación.">
+            </div>
+            <div class="control-group hidden" id="sensitivity-group">
+                <label for="sensitivity">Sensibilidad <output id="sensitivity-out">25</output></label>
+                <input type="range" id="sensitivity" min="5" max="80" value="25">
+            </div>
+            <div class="control-group">
+                <label for="morph-strength" title="Suaviza el resultado tras detectar vegetación: elimina píxeles sueltos (ruido) y rellena huecos pequeños dentro de manchas verdes. 0 = desactivado; 1–3 = más limpieza (puede redondear bordes finos).">Limpieza de ruido <output id="morph-out">1</output></label>
+                <input type="range" id="morph-strength" min="0" max="3" value="1" title="Post-procesado morfológico: quita manchas aisladas y cierra huecos. 0 = sin filtro; 3 = máxima limpieza.">
+            </div>
         </div>
-    </div>
-</div>
+        <div class="control-row">
+            <label class="checkbox-label">
+                <input type="checkbox" id="exclude-white" checked>
+                Excluir blanco (mantener color original en no-vegetación)
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="use-roi">
+                Limitar cálculo al área seleccionada
+            </label>
+        </div>
+    </section>
 
-<div>
-    <h3>Paleta de colores de guía</h3>
-    <p>Esta paleta de colores es usada para indicarle al algoritmo qué rango de colores debería de considerar vegetación.
-        A la izquiera tenemos unas muestras de colores comunes de vegentación en una imagen satelital de Google Earth.
-    </p>
-    <p>
-        Si notamos que el algoritmo está contando como vegetación un color de estos que no debería, entonces podemos dar click sobre el color y se moverá a la paleta del lado derecho,
-        la cual representa el rango de colores en los pixeles que el algoritmo ignorará. Para sacarlos de la paleta de la derecha solo tenemos que dar click de nuevo y volverá a la izquiera.
-        Si queremos quitar los colores extra que hemos agregado de ambas paletas, entonces necesitamos volver a cargar esta página. 
-    </p>
-    <p>
-        Para agregar más colores que observamos que deberían ser incluídos, entonces podemos dar click en el ícono del gotero que está arriba, paseamos el mouse por encima de la imagen en el canvas
-        y esto nos mostrará en un cuadrito el color del pixel actual en donde está el mouse. Le damos click y se agregará ese color a la paleta de colores de la izquiera, listo para que el algoritmo lo incluya en su búsqueda.
-    </p>
-</div>
-<div id="color-palette-main-container">
-    
-    <div>
-        <p>Incluir estos colores en la búsqueda</p>
-        <p>Click sobre el color para excluir</p>
-        <div id="color-palette-container" data-active="active"></div>
-    </div>
-    
-    <div id="palete-buttons-container">
-        <button
-            id="remove-all-from-pallet"
-            class="btn btn-secondary fa fa-angle-double-right"
-            title="Mueve todos los colores de la paleta de la izquierda a la paleta de la derecha para ser ignorados por el algoritmo."
-        ></button>
-        <button
-            id="add-all-from-pallet"
-            class="btn btn-secondary fa fa-angle-double-left"
-            title="Mueve todos los colores de la paleta de la derecha a la paleta de la izquierda para ser considerados por el algoritmo."
-        ></button>
-    </div>
-    <div>
-        <p>Ignorar estos colores de la búsqueda</p>
-        <p>Click sobre el color para incluir</p>
-        <div id="removed-color-palette-container" data-active="disabled"></div>
-    </div>
-</div>
-    
+    <section class="panel">
+        <h2>Herramientas</h2>
+        <div class="toolbar">
+            <button type="button" id="btn-calculate" class="primary" disabled title="Ejecuta el algoritmo sobre la imagen y calcula el porcentaje de vegetación. Aplica también correcciones de pincel y respeta el área seleccionada si está activa.">Calcular</button>
+            <button type="button" id="btn-revert" disabled title="Restaura la imagen original en el canvas, borra las marcas de pincel y el resultado del último cálculo. No elimina paletas guardadas.">↺ Revertir</button>
+            <button type="button" id="btn-export-png" disabled title="Descarga el canvas actual como imagen PNG (útil para guardar el mapa coloreado de vegetación vs. resto).">↓ PNG</button>
+            <button type="button" id="btn-export-csv" disabled title="Descarga un archivo CSV con el porcentaje de vegetación, conteos de píxeles, modo usado y dimensiones de la imagen.">↓ CSV</button>
+        </div>
+        <div class="toolbar" style="margin-top:0.65rem">
+            <div class="eyedropper-group mode-classic-only" id="eyedropper-group">
+                <button type="button" id="btn-eyedropper" disabled title="Modo clásico: activa el gotero, pasa el mouse sobre la imagen para ver el color bajo el cursor y haz clic para agregarlo a la paleta «Incluir».">🎯 Gotero</button>
+            </div>
+            <button type="button" id="btn-brush-veg" disabled title="Pincel verde: pinta zonas que el algoritmo debe contar como vegetación. Las marcas se ven al instante; pulsa Calcular para aplicarlas al porcentaje.">🖌 + Veg</button>
+            <button type="button" id="btn-brush-nonveg" disabled title="Pincel rojo: pinta zonas que NO deben contarse como vegetación (techos, caminos, suelo, etc.). Pulsa Calcular para aplicar.">🖌 − Veg</button>
+            <button type="button" id="btn-brush-erase" disabled title="Borrador: quita marcas de pincel (+ Veg o − Veg) que hayas dibujado por error, sin borrar la imagen.">⌫ Borrar</button>
+            <div class="control-group" style="min-width:120px">
+                <label for="brush-size">Tamaño pincel <output id="brush-out">12</output></label>
+                <input type="range" id="brush-size" min="3" max="40" value="12">
+            </div>
+            <button type="button" id="btn-roi" disabled title="Dibuja un rectángulo sobre la imagen para limitar el cálculo a esa zona. Activa también la casilla «Limitar cálculo al área seleccionada».">▭ Área</button>
+            <button type="button" id="btn-clear-roi" disabled title="Quita el rectángulo de área de interés y vuelve a analizar toda la imagen (si la casilla de ROI sigue marcada, no habrá zona activa).">Limpiar área</button>
+        </div>
+        <p id="status-msg"></p>
+        <p class="brush-legend hidden" id="brush-legend">
+            <span class="brush-legend-veg">■ Verde</span> = forzar vegetación &nbsp;
+            <span class="brush-legend-nonveg">■ Rojo</span> = forzar no vegetación &nbsp;·&nbsp; Pulsa <strong>Calcular</strong> para aplicar
+        </p>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
+    </section>
+
+    <section class="panel canvas-section">
+        <h2>Canvas de trabajo</h2>
+        <div class="preview-row">
+            <figure class="preview-box">
+                <img id="preview-original" alt="Vista previa original" hidden>
+                <figcaption>Referencia original</figcaption>
+            </figure>
+        </div>
+        <div class="canvas-wrap" id="canvas-wrap">
+            <canvas id="canvas"></canvas>
+            <canvas id="overlay-canvas"></canvas>
+        </div>
+        <div id="eyedropper-float" class="eyedropper-float hidden" aria-hidden="true">
+            <span id="eyedropper-float-swatch" class="eyedropper-float-swatch"></span>
+            <span id="eyedropper-float-rgb" class="eyedropper-float-rgb"></span>
+        </div>
+        <div class="compare-container" id="compare-container">
+            <h2 style="margin-top:1rem">Comparación antes / después</h2>
+            <div class="compare-wrap" id="compare-wrap">
+                <canvas id="compare-before"></canvas>
+                <canvas id="compare-after"></canvas>
+                <div class="compare-slider" id="compare-slider"></div>
+            </div>
+            <p class="compare-hint">Arrastra la barra central para comparar</p>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Resultados</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="value" id="stat-veg">—</div>
+                <div class="label">Vegetación</div>
+            </div>
+            <div class="stat-card other">
+                <div class="value" id="stat-other">—</div>
+                <div class="label">Otro (en área analizada)</div>
+            </div>
+            <div class="stat-card excluded">
+                <div class="value" id="stat-excluded">—</div>
+                <div class="label">Excluidos (blanco / fuera de ROI)</div>
+            </div>
+            <div class="stat-card excluded">
+                <div class="value" id="stat-pixels">—</div>
+                <div class="label">Píxeles analizados</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel mode-classic-only" id="palette-panel">
+        <h2>Paleta de colores (modo clásico)</h2>
+        <p class="help-text">Colores de referencia para vegetación en Google Earth. Clic para mover entre incluir / ignorar.</p>
+        <div class="palette-presets">
+            <div class="palette-presets-actions">
+                <div class="control-group" style="flex:2; min-width:220px">
+                    <label for="palette-preset-select">Paleta guardada</label>
+                    <select id="palette-preset-select">
+                        <option value="__default__">Predeterminada (Google Earth)</option>
+                    </select>
+                </div>
+                <button type="button" id="btn-delete-palette" disabled title="Elimina permanentemente la paleta seleccionada en el listado y carga la predeterminada. No afecta otras paletas guardadas.">Eliminar</button>
+            </div>
+            <div class="palette-presets-row">
+                <div class="control-group">
+                    <label for="palette-save-label">Nombre al guardar</label>
+                    <input type="text" id="palette-save-label" class="palette-input" placeholder="Ej. Google Earth 700 m" maxlength="80">
+                </div>
+                <div class="control-group" style="flex:2">
+                    <label for="palette-save-desc">Descripción (opcional)</label>
+                    <input type="text" id="palette-save-desc" class="palette-input" placeholder="Ej. Verano, zona boscosa" maxlength="200">
+                </div>
+                <button type="button" id="btn-save-palette" class="primary" title="Guarda la paleta actual (colores en «Incluir» e «Ignorar») con el nombre y descripción indicados. Si el nombre ya existe, se actualiza.">Guardar paleta</button>
+            </div>
+        </div>
+        <div class="palette-columns">
+            <div class="palette-col">
+                <p><strong>Incluir</strong> — clic para excluir</p>
+                <div class="palette-grid" id="palette-active" data-active="active"></div>
+            </div>
+            <div class="palette-actions">
+                <button type="button" id="btn-palette-all-right" title="Mueve todos los colores de «Incluir» a «Ignorar» para que el algoritmo deje de considerarlos vegetación.">→</button>
+                <button type="button" id="btn-palette-all-left" title="Mueve todos los colores de «Ignorar» a «Incluir» para que vuelvan a contarse como vegetación.">←</button>
+                <button type="button" id="btn-palette-reset" class="danger" title="Restaura la paleta predeterminada de Google Earth (27 colores de referencia) y borra los campos de nombre/descripción.">↺ Paleta</button>
+            </div>
+            <div class="palette-col">
+                <p><strong>Ignorar</strong> — clic para incluir</p>
+                <div class="palette-grid" id="palette-removed" data-active="disabled"></div>
+            </div>
+        </div>
+    </section>
+</main>
+
 <script>
+(function () {
+    "use strict";
 
-"usestrict";
+    const MAX_DIMENSION = 2048;
+    const STORAGE_KEY = "verdor-v2";
+    const PALETTES_KEY = "verdor-palettes-v1";
+    const CHUNK_PIXELS = 250000;
 
-const img = document.getElementById('img1');
-const img2 = document.getElementById('img2');
-const revertButton = document.getElementById('revert');
-const addImage = document.getElementById('addImage');
-const calculateButton = document.getElementById('calculate');
-const colorPaletteContainer = document.getElementById('color-palette-container');
-const excludeWhiteCheckbox = document.getElementById("exclude-white");
-const selectedPixelObj = {r: 0, g: 0, b: 0, a: 255};
-const showSelectedPixelColorButton = $('#select-pixel-color');
-const removeAllFromPaleteButton = $('#remove-all-from-pallet');
-const includeAllFromPalete = $('#add-all-from-pallet');
-let canvas;
-let isClicked = false;
-let ctx;
-let imageData;
-let imageLoaded = false;
-let colorObjArray = [];
+    const DEFAULT_COLORS = [
+        { r: 3, g: 42, b: 3 }, { r: 4, g: 18, b: 3 }, { r: 66, g: 129, b: 19 },
+        { r: 36, g: 98, b: 26 }, { r: 56, g: 146, b: 26 }, { r: 50, g: 178, b: 4 },
+        { r: 91, g: 137, b: 53 }, { r: 49, g: 110, b: 11 }, { r: 16, g: 56, b: 5 },
+        { r: 8, g: 123, b: 1 }, { r: 50, g: 82, b: 38 }, { r: 27, g: 35, b: 19 },
+        { r: 121, g: 192, b: 31 }, { r: 90, g: 157, b: 7 }, { r: 83, g: 181, b: 12 },
+        { r: 13, g: 69, b: 9 }, { r: 18, g: 36, b: 35 }, { r: 32, g: 46, b: 40 },
+        { r: 45, g: 62, b: 55 }, { r: 26, g: 40, b: 41 }, { r: 34, g: 58, b: 52 },
+        { r: 69, g: 60, b: 61 }, { r: 61, g: 78, b: 85 }, { r: 51, g: 62, b: 68 },
+        { r: 38, g: 65, b: 74 }, { r: 70, g: 70, b: 72 }, { r: 30, g: 57, b: 66 }
+    ];
 
-removeAllFromPaleteButton.on('click', () => {
-    const colorPaletteContainer = $('#color-palette-container');
-    const removedColorPaletteContainer = $('#removed-color-palette-container');
-    const colorPaletteContainerChildren = colorPaletteContainer.children();
-    const removedColorPaletteContainerChildren = removedColorPaletteContainer.children();
-    for(let i = 0; i < colorPaletteContainerChildren.length; i++) {
-        let color = colorPaletteContainerChildren[i];
-        colorPaletteContainerChildren[i].remove();
-        removedColorPaletteContainer.append(color);
-    }
-    colorObjArray = [];
-});
-
-includeAllFromPalete.on('click', () => {
-    const colorPaletteContainer = $('#color-palette-container');
-    const removedColorPaletteContainer = $('#removed-color-palette-container');
-    const colorPaletteContainerChildren = colorPaletteContainer.children();
-    const removedColorPaletteContainerChildren = removedColorPaletteContainer.children();
-    for(let i = 0; i < removedColorPaletteContainerChildren.length; i++) {
-        let color = removedColorPaletteContainerChildren[i];
-        removedColorPaletteContainerChildren[i].remove();
-        colorPaletteContainer.append(color);
-        colorObjArray.push(color.colorObj);
-    }
-});
-
-const revert = () => {
-    ctx.drawImage(img, 0, 0);
-    imageLoaded = true;
-};
-
-revertButton.addEventListener('click', () => {
-    if(!imageLoaded) {
-        alert('Elija una imagen primero.');
-        return;
-    }
-    revert();
-});
-
-function putDrawnImageOnCanvas() {
-    let tempImg = document.createElement('img');
-    let data = canvas.toDataURL('other/png');
-    tempImg.src = data;
-    ctx.drawImage(tempImg, 0, 0);
-}
-
-calculateButton.addEventListener('click', () => {
-    if(!imageLoaded) {
-        alert('Elija una imagen primero.');
-        return;
-    }
-    revert();
-    putDrawnImageOnCanvas();
-    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const colorCountObj = findAndMarkPixelsWithinAllowedGreenRange(canvas, ctx);
-    showVegetationPercentage(colorCountObj);
-});
-
-addImage.addEventListener('change', function() {
-    let reader = new FileReader();
-    let file = addImage.files[0];
-    reader.onloadend = () => {
-      img.src = reader.result;
-    }
-    reader.readAsDataURL(file)
-});
-
-img.addEventListener('load', loadCanvasImage);
-
-function loadCanvasImage() {
-    prepareCanvas();
-    imageLoaded = true;
-    img2.src = img.src;
-}
-
-function prepareCanvas() {
-    canvas = document.getElementById('canvas');
-    ctx = canvas.getContext('2d');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-}
-
-// Goes pixel by pixel on the canvas checking which pixel has a color to be considered vegetation or included.
-function findAndMarkPixelsWithinAllowedGreenRange(canvas, ctx) {
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let greenColorPixelCount = 0;
-    let otherColorPixelCount = 0;
-    let imgDataLength = imgData.data.length;
-    const isNotWhitePixel = (r, g, b) => (r !== 255) && (g !== 255) && (b !== 255);
-    const isWithinAllowedRangeGreenColor = (r, g, b) => {
-        return colorObjArray.some(color => {
-            let r2 = color.r;
-            let g2 = color.g;
-            let b2 = color.b;
-            return  (r >= (r2 - 10) && r <= (r2 + 10)) && 
-                    (g >= (g2 - 10) && g <= (g2 + 10)) && 
-                    (b >= (b2 - 10) && b <= (b2 + 10))
-        });
+    const state = {
+        imageLoaded: false,
+        originalWidth: 0,
+        originalHeight: 0,
+        scaledFrom: null,
+        activeColors: [],
+        removedColors: [],
+        overrideMask: null,
+        roi: null,
+        lastResult: null,
+        lastOriginalSnapshot: null,
+        tool: null
     };
-    const setCurrentPixelToGreen = (i) => {
-        imgData.data[i] = 0;
-        imgData.data[i + 1] = 255;
-        imgData.data[i + 2] = 0;
+
+    const els = {
+        sourceImg: document.getElementById("source-img"),
+        previewOriginal: document.getElementById("preview-original"),
+        canvas: document.getElementById("canvas"),
+        overlay: document.getElementById("overlay-canvas"),
+        dropZone: document.getElementById("drop-zone"),
+        fileInput: document.getElementById("file-input"),
+        imageInfo: document.getElementById("image-info"),
+        algoMode: document.getElementById("algo-mode"),
+        colorTolerance: document.getElementById("color-tolerance"),
+        toleranceOut: document.getElementById("tolerance-out"),
+        sensitivity: document.getElementById("sensitivity"),
+        sensitivityOut: document.getElementById("sensitivity-out"),
+        sensitivityGroup: document.getElementById("sensitivity-group"),
+        morphStrength: document.getElementById("morph-strength"),
+        morphOut: document.getElementById("morph-out"),
+        excludeWhite: document.getElementById("exclude-white"),
+        useRoi: document.getElementById("use-roi"),
+        btnCalculate: document.getElementById("btn-calculate"),
+        btnRevert: document.getElementById("btn-revert"),
+        btnExportPng: document.getElementById("btn-export-png"),
+        btnExportCsv: document.getElementById("btn-export-csv"),
+        btnEyedropper: document.getElementById("btn-eyedropper"),
+        eyedropperGroup: document.getElementById("eyedropper-group"),
+        eyedropperFloat: document.getElementById("eyedropper-float"),
+        eyedropperFloatSwatch: document.getElementById("eyedropper-float-swatch"),
+        eyedropperFloatRgb: document.getElementById("eyedropper-float-rgb"),
+        btnBrushVeg: document.getElementById("btn-brush-veg"),
+        btnBrushNonveg: document.getElementById("btn-brush-nonveg"),
+        btnBrushErase: document.getElementById("btn-brush-erase"),
+        brushSize: document.getElementById("brush-size"),
+        brushOut: document.getElementById("brush-out"),
+        btnRoi: document.getElementById("btn-roi"),
+        btnClearRoi: document.getElementById("btn-clear-roi"),
+        statusMsg: document.getElementById("status-msg"),
+        brushLegend: document.getElementById("brush-legend"),
+        progressBar: document.getElementById("progress-bar"),
+        progressFill: document.getElementById("progress-fill"),
+        statVeg: document.getElementById("stat-veg"),
+        statOther: document.getElementById("stat-other"),
+        statExcluded: document.getElementById("stat-excluded"),
+        statPixels: document.getElementById("stat-pixels"),
+        paletteActive: document.getElementById("palette-active"),
+        paletteRemoved: document.getElementById("palette-removed"),
+        btnPaletteAllRight: document.getElementById("btn-palette-all-right"),
+        btnPaletteAllLeft: document.getElementById("btn-palette-all-left"),
+        btnPaletteReset: document.getElementById("btn-palette-reset"),
+        palettePresetSelect: document.getElementById("palette-preset-select"),
+        paletteSaveLabel: document.getElementById("palette-save-label"),
+        paletteSaveDesc: document.getElementById("palette-save-desc"),
+        btnSavePalette: document.getElementById("btn-save-palette"),
+        btnDeletePalette: document.getElementById("btn-delete-palette"),
+        compareContainer: document.getElementById("compare-container"),
+        compareBefore: document.getElementById("compare-before"),
+        compareAfter: document.getElementById("compare-after"),
+        compareSlider: document.getElementById("compare-slider"),
+        compareWrap: document.getElementById("compare-wrap")
+    };
+
+    const ctx = els.canvas.getContext("2d", { willReadFrequently: true });
+    const overlayCtx = els.overlay.getContext("2d");
+
+    let roiDrag = null;
+    let brushPainting = false;
+    let brushCursor = null;
+    let suppressPresetChange = false;
+    let eyedropperColor = { r: 255, g: 255, b: 255 };
+
+    function isBrushTool(tool) {
+        return tool === "brush-veg" || tool === "brush-nonveg" || tool === "brush-erase";
     }
-    const setCurrentPixelToWhite = (i) => {
-        imgData.data[i] = 255;
-        imgData.data[i + 1] = 255;
-        imgData.data[i + 2] = 255;
+
+    function ensureOverrideMask() {
+        if (!state.overrideMask || state.overrideMask.length !== els.canvas.width * els.canvas.height) {
+            resetOverrideMask();
+        }
     }
-    for (let i = 0; i < imgDataLength; i += 4) {
-        const r = imgData.data[i];
-        const g = imgData.data[i + 1];
-        const b = imgData.data[i + 2];
-        let isCurrentPixelWithinAllowedGreenRange = false;
-        if(isNotWhitePixel(r, g, b)) {
-            otherColorPixelCount++;
-            if (isWithinAllowedRangeGreenColor(r, g, b)) {
-                setCurrentPixelToGreen(i);
-                greenColorPixelCount++;
-                isCurrentPixelWithinAllowedGreenRange = true;
+
+    function countBrushMarks() {
+        if (!state.overrideMask) return 0;
+        let n = 0;
+        for (let i = 0; i < state.overrideMask.length; i++) {
+            if (state.overrideMask[i]) n++;
+        }
+        return n;
+    }
+
+    function redrawFullBrushOverlay() {
+        if (!state.overrideMask || !countBrushMarks()) return;
+        const w = els.overlay.width;
+        const h = els.overlay.height;
+        const img = overlayCtx.createImageData(w, h);
+        const d = img.data;
+        for (let i = 0; i < state.overrideMask.length; i++) {
+            const o = state.overrideMask[i];
+            if (!o) continue;
+            const j = i * 4;
+            if (o === 1) {
+                d[j] = 0; d[j + 1] = 200; d[j + 2] = 60; d[j + 3] = 120;
+            } else if (o === 2) {
+                d[j] = 230; d[j + 1] = 93; d[j + 2] = 93; d[j + 3] = 120;
             }
         }
-        if(!isCurrentPixelWithinAllowedGreenRange && !excludeWhiteCheckbox.checked) {
-            setCurrentPixelToWhite(i);
+        overlayCtx.putImageData(img, 0, 0);
+    }
+
+    function redrawBrushOverlayRegion(cx, cy, r) {
+        if (!state.overrideMask) return;
+        const w = els.canvas.width;
+        const h = els.canvas.height;
+        const r2 = r * r;
+        const x0 = Math.max(0, cx - r);
+        const y0 = Math.max(0, cy - r);
+        const x1 = Math.min(w - 1, cx + r);
+        const y1 = Math.min(h - 1, cy + r);
+        const rw = x1 - x0 + 1;
+        const rh = y1 - y0 + 1;
+
+        overlayCtx.save();
+        overlayCtx.beginPath();
+        overlayCtx.arc(cx, cy, r, 0, Math.PI * 2);
+        overlayCtx.clip();
+        overlayCtx.clearRect(x0, y0, rw, rh);
+
+        const img = overlayCtx.createImageData(rw, rh);
+        const d = img.data;
+        for (let y = y0; y <= y1; y++) {
+            for (let x = x0; x <= x1; x++) {
+                const dx = x - cx, dy = y - cy;
+                if (dx * dx + dy * dy > r2) continue;
+                const o = state.overrideMask[pixelIndex(x, y, w)];
+                if (!o) continue;
+                const j = ((y - y0) * rw + (x - x0)) * 4;
+                if (o === 1) {
+                    d[j] = 0; d[j + 1] = 200; d[j + 2] = 60; d[j + 3] = 120;
+                } else if (o === 2) {
+                    d[j] = 230; d[j + 1] = 93; d[j + 2] = 93; d[j + 3] = 120;
+                }
+            }
+        }
+        overlayCtx.putImageData(img, x0, y0);
+        overlayCtx.restore();
+    }
+
+    function drawBrushCursor(x, y) {
+        if (!isBrushTool(state.tool)) return;
+        const r = +els.brushSize.value;
+        overlayCtx.save();
+        overlayCtx.lineWidth = 2;
+        if (state.tool === "brush-veg") overlayCtx.strokeStyle = "rgba(61, 220, 132, 0.95)";
+        else if (state.tool === "brush-nonveg") overlayCtx.strokeStyle = "rgba(232, 93, 93, 0.95)";
+        else overlayCtx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        overlayCtx.setLineDash(state.tool === "brush-erase" ? [4, 3] : []);
+        overlayCtx.beginPath();
+        overlayCtx.arc(x, y, r, 0, Math.PI * 2);
+        overlayCtx.stroke();
+        overlayCtx.setLineDash([]);
+        overlayCtx.restore();
+    }
+
+    function refreshOverlay(extraCursor) {
+        drawOverlay();
+        if (extraCursor) drawBrushCursor(extraCursor.x, extraCursor.y);
+    }
+
+    function cloneColors(arr) {
+        return arr.map(c => ({ r: c.r, g: c.g, b: c.b }));
+    }
+
+    function isValidColor(c) {
+        return c &&
+            Number.isFinite(c.r) && Number.isFinite(c.g) && Number.isFinite(c.b) &&
+            c.r >= 0 && c.r <= 255 &&
+            c.g >= 0 && c.g <= 255 &&
+            c.b >= 0 && c.b <= 255;
+    }
+
+    function normalizePaletteColors(colors) {
+        if (!Array.isArray(colors)) return [];
+        return colors.filter(isValidColor).map(c => ({ r: c.r, g: c.g, b: c.b }));
+    }
+
+    function isNearWhite(r, g, b) {
+        return (r + g + b) >= 740 && Math.max(r, g, b) - Math.min(r, g, b) < 25;
+    }
+
+    function isTransparent(a) {
+        return a < 128;
+    }
+
+    function computeExG(r, g, b) {
+        return 2 * g - r - b;
+    }
+
+    function rgbToHsv(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const d = max - min;
+        let h = 0;
+        const s = max === 0 ? 0 : d / max;
+        const v = max;
+        if (d !== 0) {
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                default: h = ((r - g) / d + 4) / 6;
+            }
+        }
+        return { h: h * 360, s, v };
+    }
+
+    function isVegetationClassic(r, g, b, tolerance) {
+        return state.activeColors.some(c =>
+            r >= c.r - tolerance && r <= c.r + tolerance &&
+            g >= c.g - tolerance && g <= c.g + tolerance &&
+            b >= c.b - tolerance && b <= c.b + tolerance
+        );
+    }
+
+    function isVegetationExG(r, g, b, threshold) {
+        return computeExG(r, g, b) >= threshold && g > r && g > b;
+    }
+
+    function isVegetationHsv(r, g, b, sensitivity) {
+        const { h, s, v } = rgbToHsv(r, g, b);
+        const minSat = 0.08 + (40 - sensitivity) * 0.004;
+        const minVal = 0.08;
+        const inGreenHue = (h >= 55 && h <= 165);
+        return inGreenHue && s >= minSat && v >= minVal && g >= r;
+    }
+
+    function detectVegetation(r, g, b) {
+        const mode = els.algoMode.value;
+        if (mode === "classic") {
+            return isVegetationClassic(r, g, b, +els.colorTolerance.value);
+        }
+        if (mode === "exg") {
+            const threshold = +els.sensitivity.value;
+            return isVegetationExG(r, g, b, threshold);
+        }
+        return isVegetationHsv(r, g, b, +els.sensitivity.value);
+    }
+
+    function pixelIndex(x, y, w) {
+        return y * w + x;
+    }
+
+    function inRoi(x, y) {
+        if (!state.roi || !els.useRoi.checked) return true;
+        const { x: rx, y: ry, w, h } = state.roi;
+        return x >= rx && x < rx + w && y >= ry && y < ry + h;
+    }
+
+    function dilate(mask, w, h) {
+        const out = new Uint8Array(mask);
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const i = pixelIndex(x, y, w);
+                if (mask[i]) continue;
+                let hit = false;
+                for (let dy = -1; dy <= 1 && !hit; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        if (mask[pixelIndex(x + dx, y + dy, w)]) { hit = true; break; }
+                    }
+                }
+                if (hit) out[i] = 1;
+            }
+        }
+        return out;
+    }
+
+    function erode(mask, w, h) {
+        const out = new Uint8Array(mask.length);
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const i = pixelIndex(x, y, w);
+                if (!mask[i]) continue;
+                let keep = true;
+                for (let dy = -1; dy <= 1 && keep; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        if (!mask[pixelIndex(x + dx, y + dy, w)]) { keep = false; break; }
+                    }
+                }
+                if (keep) out[i] = 1;
+            }
+        }
+        return out;
+    }
+
+    function applyMorphology(mask, w, h, strength) {
+        if (strength <= 0) return mask;
+        let result = mask;
+        for (let i = 0; i < strength; i++) {
+            result = dilate(erode(result, w, h), w, h);
+            result = erode(dilate(result, w, h), w, h);
+        }
+        return result;
+    }
+
+    function getCanvasCoords(e) {
+        const rect = els.canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) {
+            return { x: 0, y: 0 };
+        }
+        const scaleX = els.canvas.width / rect.width;
+        const scaleY = els.canvas.height / rect.height;
+        const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? 0;
+        const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY) ?? 0;
+        return {
+            x: Math.max(0, Math.min(els.canvas.width - 1, Math.floor((clientX - rect.left) * scaleX))),
+            y: Math.max(0, Math.min(els.canvas.height - 1, Math.floor((clientY - rect.top) * scaleY)))
+        };
+    }
+
+    function setStatus(msg) {
+        els.statusMsg.textContent = msg || "";
+    }
+
+    function setProgress(pct) {
+        if (pct < 0) {
+            els.progressBar.classList.remove("visible");
+            els.progressFill.style.width = "0%";
+            return;
+        }
+        els.progressBar.classList.add("visible");
+        els.progressFill.style.width = pct + "%";
+    }
+
+    function enableTools(enabled) {
+        [
+            els.btnCalculate, els.btnRevert, els.btnExportPng, els.btnExportCsv,
+            els.btnEyedropper, els.btnBrushVeg, els.btnBrushNonveg, els.btnBrushErase,
+            els.btnRoi, els.btnClearRoi
+        ].forEach(btn => { btn.disabled = !enabled; });
+    }
+
+    function syncCanvasSizes() {
+        els.overlay.width = els.canvas.width;
+        els.overlay.height = els.canvas.height;
+        drawOverlay();
+    }
+
+    function drawOverlay() {
+        overlayCtx.clearRect(0, 0, els.overlay.width, els.overlay.height);
+        redrawFullBrushOverlay();
+        if (state.roi) {
+            const { x, y, w, h } = state.roi;
+            overlayCtx.strokeStyle = "#3ddc84";
+            overlayCtx.lineWidth = 2;
+            overlayCtx.setLineDash([6, 4]);
+            overlayCtx.strokeRect(x + 0.5, y + 0.5, w, h);
+            overlayCtx.setLineDash([]);
+            overlayCtx.fillStyle = "rgba(61, 220, 132, 0.08)";
+            overlayCtx.fillRect(x, y, w, h);
+        }
+        if (roiDrag) {
+            const x = Math.min(roiDrag.x0, roiDrag.x1);
+            const y = Math.min(roiDrag.y0, roiDrag.y1);
+            const w = Math.abs(roiDrag.x1 - roiDrag.x0);
+            const h = Math.abs(roiDrag.y1 - roiDrag.y0);
+            overlayCtx.strokeStyle = "#e8b84d";
+            overlayCtx.lineWidth = 2;
+            overlayCtx.strokeRect(x + 0.5, y + 0.5, w, h);
         }
     }
-    ctx.putImageData(imgData, 0, 0);
-    return { otherColorPixelCount, greenColorPixelCount };
-    
-}
 
-function showVegetationPercentage({ otherColorPixelCount, greenColorPixelCount }) {
-    otherColorPixelCount -= greenColorPixelCount;
-    console.info('Green count', greenColorPixelCount);
-    console.info('Other count', otherColorPixelCount);
-    let average = (greenColorPixelCount / (otherColorPixelCount + greenColorPixelCount)) * 100;
-    average = Math.round(average * 100) / 100;
-    console.info('Average', average);
-    $('#vegetation-span').text(`${average}%`);
-    $('#other-span').text(`${Math.round((100 - average) * 100) / 100}%`);
-}
-
-
-// Base green color examples for the algorithm
-function getColorsToSearchFor() {
-    let colors = [];
-    colors.push({ r: 3, g: 42, b: 3, a: 255});
-    colors.push({ r: 4, g: 18, b: 3, a: 255});
-    colors.push({ r: 66, g: 129, b: 19, a: 255});
-    colors.push({ r: 36, g: 98, b: 26, a: 255});
-    colors.push({ r: 56, g: 146, b: 26, a: 255});
-    colors.push({ r: 50, g: 178, b: 4, a: 255});
-    colors.push({ r: 91, g: 137, b: 53, a: 255});
-    colors.push({ r: 49, g: 110, b: 11, a: 255});
-    colors.push({ r: 16, g: 56, b: 5, a: 255});
-    colors.push({ r: 8, g: 123, b: 1, a: 255});
-    colors.push({ r: 50, g: 82, b: 38, a: 255});
-    colors.push({ r: 27, g: 35, b: 19, a: 255});
-    colors.push({ r: 121, g: 192, b: 31, a: 255});
-    colors.push({ r: 90, g: 157, b: 7, a: 255});
-    colors.push({ r: 83, g: 181, b: 12, a: 255});
-    colors.push({ r: 13, g: 69, b: 9, a: 255});
-    colors.push({ r: 18, g: 36, b: 35, a: 255});
-    colors.push({ r: 32, g: 46, b: 40, a: 255});
-    colors.push({ r: 45, g: 62, b: 55, a: 25,});
-    colors.push({ r: 26, g: 40, b: 41, a: 255});
-    colors.push({ r: 34, g: 58, b: 52, a: 255});
-    colors.push({ r: 69, g: 60, b: 61, a: 255,});
-    colors.push({ r: 61, g: 78, b: 85, a: 255});
-    colors.push({ r: 51, g: 62, b: 68, a: 255});
-    colors.push({ r: 38, g: 65, b: 74, a: 255});
-    colors.push({ r: 70, g: 70, b: 72, a: 255});
-    colors.push({ r: 30, g: 57, b: 66, a: 255});
-    return colors;
-}
-
-function fillColorPaletteContainer() {
-    colorObjArray.forEach(color => {
-        const rgb = `RGB(${color.r}, ${color.g}, ${color.b})`;
-        let paletteColorElement = $(`
-                <p style="background-color: ${rgb};"
-                    class="p-color-elems"
-                    title="Click para eliminar"
-                />
-            `);
-        paletteColorElement[0].colorObj = color;
-        paletteColorElement.click(togglePaletteColor);
-        $(colorPaletteContainer).append(paletteColorElement);
-    });  
-}
-
-function togglePaletteColor() {
-    const colorElem = this;
-    const colorElemParent = colorElem.parentNode;
-    const containerAttr = colorElemParent.getAttribute('data-active');
-    if(containerAttr === 'active') {
-        const removedColorPaletteContainer = document.getElementById('removed-color-palette-container');
-        removeFromColorObjArray(colorElem.colorObj);
-        removedColorPaletteContainer.appendChild(colorElem);
-        colorElem.setAttribute('title', 'Click para agregar.');
-    }else{
-        addToColorObjArray(colorElem.colorObj);
-        colorPaletteContainer.appendChild(colorElem);
-        colorElem.setAttribute('title', 'Click para eliminar.');
+    function resetOverrideMask() {
+        if (!state.imageLoaded) {
+            state.overrideMask = null;
+            return;
+        }
+        state.overrideMask = new Uint8Array(els.canvas.width * els.canvas.height);
     }
-}
 
-function initColorObjArray() {
-    colorObjArray = getColorsToSearchFor();
-}
+    function loadImageFromSource(src, fileName) {
+        els.sourceImg.onload = () => {
+            let w = els.sourceImg.naturalWidth;
+            let h = els.sourceImg.naturalHeight;
+            state.scaledFrom = null;
 
-function addToColorObjArray(obj) {
-    colorObjArray.push(obj);
-}
+            if (w > MAX_DIMENSION || h > MAX_DIMENSION) {
+                const scale = MAX_DIMENSION / Math.max(w, h);
+                state.scaledFrom = { w, h };
+                w = Math.round(w * scale);
+                h = Math.round(h * scale);
+            }
 
-function removeFromColorObjArray(obj) {
-    const index = colorObjArray.indexOf(obj);
-    if(index > -1) {
-        colorObjArray.splice(index, 1);
+            state.originalWidth = w;
+            state.originalHeight = h;
+            els.canvas.width = w;
+            els.canvas.height = h;
+            ctx.drawImage(els.sourceImg, 0, 0, w, h);
+
+            els.previewOriginal.src = els.sourceImg.src;
+            els.previewOriginal.hidden = false;
+
+            state.imageLoaded = true;
+            state.roi = null;
+            state.lastResult = null;
+            state.lastOriginalSnapshot = null;
+            resetOverrideMask();
+            syncCanvasSizes();
+            enableTools(true);
+            els.compareContainer.classList.remove("visible");
+            clearStats();
+
+            let info = `${w} × ${h} px`;
+            if (fileName) info += ` — ${fileName}`;
+            if (state.scaledFrom) {
+                info += ` — redimensionada desde ${state.scaledFrom.w}×${state.scaledFrom.h} (máx. ${MAX_DIMENSION}px)`;
+                els.imageInfo.className = "warn";
+            } else {
+                els.imageInfo.className = "";
+            }
+            els.imageInfo.textContent = info;
+            setStatus("Imagen cargada. Elige un modo y pulsa Calcular.");
+        };
+        els.sourceImg.src = src;
     }
-}
 
-initColorObjArray();
-fillColorPaletteContainer();
-loadCanvasImage();
-let toggleSelectPixelButtonActive = false;
-
-$('#select-pixel-button').click(function() {
-    let me = this;
-    toggleSelectPixelButtonActive = !toggleSelectPixelButtonActive;
-    if(toggleSelectPixelButtonActive) {
-        $(me).addClass('select-pixel-active');
-        $(canvas).on('mousemove', canvasMouseMove);
-        $(canvas).on('click', selectPixelValue);
-        $('#calculate').attr('disabled', true);
-    }else{
-        $(me).removeClass('select-pixel-active');
-        $(canvas).off('mousemove', canvasMouseMove);
-        $(canvas).off('click', selectPixelValue);
-        $('#calculate').attr('disabled', false);
-        showSelectedPixelColorButton.css('background-color','#fff');
+    function handleFile(file) {
+        if (!file || !file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = () => loadImageFromSource(reader.result, file.name);
+        reader.readAsDataURL(file);
     }
-});
 
-
-function selectPixelValue() {
-    let r = selectedPixelObj.r;
-    let g = selectedPixelObj.g;
-    let b = selectedPixelObj.b;
-    pixelObj = {r, g, b, a: 255};
-    colorObjArray.push(pixelObj);
-    const rgb = `RGB(${r}, ${g}, ${b})`;
-    let paletteColorElement = $(`
-            <p style="background-color: ${rgb};"
-                class="p-color-elems"
-                title="Click para eliminar"
-            />
-        `);
-    paletteColorElement.click(togglePaletteColor);
-    paletteColorElement[0].colorObj = pixelObj;
-    $(colorPaletteContainer).append(paletteColorElement);
-        
-}
-function canvasMouseMove(e) {
-    const canvas = this;
-    const pos = findPositionForMousePointerOnCanvas(canvas);
-    const x = e.pageX - pos.x;
-    const y = e.pageY - pos.y;
-    const pixelVal = ctx.getImageData(x, y, 1, 1).data;
-    const r = pixelVal[0];
-    const g = pixelVal[1];
-    const b = pixelVal[2];
-    selectedPixelObj.r = r;
-    selectedPixelObj.g = g;
-    selectedPixelObj.b = b;
-    const rgb = `RGB(${r}, ${g}, ${b})`;
-    showSelectedPixelColorButton.css('background-color', rgb);
-}
-function findPositionForMousePointerOnCanvas(canvas) {
-    let canvasParent = canvas;
-    let left = 0;
-    let top = 0;
-    if (canvas.offsetParent) {
-        do {
-            left += canvasParent.offsetLeft;
-            top += canvasParent.offsetTop;
-        } while (canvasParent = canvasParent.offsetParent);
-        return {x: left, y: top};
+    function revertCanvas(clearOverrides) {
+        if (!state.imageLoaded) return;
+        ctx.drawImage(els.sourceImg, 0, 0, els.canvas.width, els.canvas.height);
+        if (clearOverrides !== false) resetOverrideMask();
+        drawOverlay();
     }
-}
+
+    function paintBrush(cx, cy, mode) {
+        ensureOverrideMask();
+        const r = +els.brushSize.value;
+        const w = els.canvas.width;
+        const h = els.canvas.height;
+        const r2 = r * r;
+        for (let y = Math.max(0, cy - r); y <= Math.min(h - 1, cy + r); y++) {
+            for (let x = Math.max(0, cx - r); x <= Math.min(w - 1, cx + r); x++) {
+                const dx = x - cx, dy = y - cy;
+                if (dx * dx + dy * dy <= r2) {
+                    state.overrideMask[pixelIndex(x, y, w)] = mode;
+                }
+            }
+        }
+        redrawBrushOverlayRegion(cx, cy, r);
+    }
+
+    function applyOverridesToMask(mask, w, h) {
+        for (let i = 0; i < mask.length; i++) {
+            const o = state.overrideMask[i];
+            if (o === 1) mask[i] = 1;
+            else if (o === 2) mask[i] = 0;
+        }
+    }
+
+    async function runCalculation() {
+        if (!state.imageLoaded) {
+            setStatus("Carga una imagen primero.");
+            return;
+        }
+
+        setTool(null);
+        hideEyedropperFloat();
+        ctx.drawImage(els.sourceImg, 0, 0, els.canvas.width, els.canvas.height);
+        ensureOverrideMask();
+        state.lastOriginalSnapshot = ctx.getImageData(0, 0, els.canvas.width, els.canvas.height);
+
+        const w = els.canvas.width;
+        const h = els.canvas.height;
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+        const totalPixels = w * h;
+        const mask = new Uint8Array(totalPixels);
+
+        setProgress(0);
+        setStatus("Calculando…");
+
+        let processed = 0;
+        const morphStrength = +els.morphStrength.value;
+
+        await new Promise(resolve => {
+            const step = () => {
+                const end = Math.min(processed + CHUNK_PIXELS, totalPixels);
+                for (let p = processed; p < end; p++) {
+                    const i = p * 4;
+                    const x = p % w;
+                    const y = (p / w) | 0;
+                    const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+
+                    if (!inRoi(x, y) || isTransparent(a) || isNearWhite(r, g, b)) {
+                        mask[p] = 0;
+                    } else if (detectVegetation(r, g, b)) {
+                        mask[p] = 1;
+                    } else {
+                        mask[p] = 0;
+                    }
+                }
+                processed = end;
+                setProgress(Math.round((processed / totalPixels) * 70));
+                if (processed < totalPixels) {
+                    requestAnimationFrame(step);
+                } else {
+                    resolve();
+                }
+            };
+            requestAnimationFrame(step);
+        });
+
+        applyOverridesToMask(mask, w, h);
+        const cleaned = applyMorphology(mask, w, h, morphStrength);
+
+        let vegCount = 0, otherCount = 0, excludedCount = 0;
+
+        for (let p = 0; p < totalPixels; p++) {
+            const i = p * 4;
+            const x = p % w;
+            const y = (p / w) | 0;
+            const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+            const excluded = !inRoi(x, y) || isTransparent(a) || isNearWhite(r, g, b);
+
+            if (excluded) {
+                excludedCount++;
+                continue;
+            }
+            if (cleaned[p]) {
+                vegCount++;
+                data[i] = 0;
+                data[i + 1] = 200;
+                data[i + 2] = 60;
+            } else {
+                otherCount++;
+                if (!els.excludeWhite.checked) {
+                    data[i] = data[i + 1] = data[i + 2] = 255;
+                }
+            }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        setProgress(100);
+
+        const analyzed = vegCount + otherCount;
+        const vegPct = analyzed > 0 ? Math.round((vegCount / analyzed) * 10000) / 100 : 0;
+        const otherPct = analyzed > 0 ? Math.round((otherCount / analyzed) * 10000) / 100 : 0;
+
+        state.lastResult = {
+            vegCount, otherCount, excludedCount, analyzed,
+            vegPct, otherPct,
+            mode: els.algoMode.value,
+            timestamp: new Date().toISOString()
+        };
+
+        updateStats(state.lastResult);
+        setupCompareView();
+        drawOverlay();
+        setProgress(-1);
+        const marks = countBrushMarks();
+        const marksNote = marks > 0 ? ` (${marks.toLocaleString()} correcciones de pincel aplicadas)` : "";
+        setStatus(`Listo — ${vegPct}% vegetación en ${analyzed.toLocaleString()} píxeles analizados.${marksNote}`);
+        saveSettings();
+    }
+
+    function updateStats(r) {
+        els.statVeg.textContent = r.vegPct + "%";
+        els.statOther.textContent = r.otherPct + "%";
+        els.statExcluded.textContent = r.excludedCount.toLocaleString();
+        els.statPixels.textContent = r.analyzed.toLocaleString();
+    }
+
+    function clearStats() {
+        els.statVeg.textContent = els.statOther.textContent = "—";
+        els.statExcluded.textContent = els.statPixels.textContent = "—";
+    }
+
+    function setupCompareView() {
+        if (!state.lastOriginalSnapshot) return;
+        const w = els.canvas.width;
+        const h = els.canvas.height;
+
+        els.compareBefore.width = w;
+        els.compareBefore.height = h;
+        els.compareAfter.width = w;
+        els.compareAfter.height = h;
+
+        els.compareBefore.getContext("2d").putImageData(state.lastOriginalSnapshot, 0, 0);
+        els.compareAfter.getContext("2d").drawImage(els.canvas, 0, 0);
+
+        els.compareContainer.classList.add("visible");
+        requestAnimationFrame(() => setComparePosition(50));
+    }
+
+    function setComparePosition(pct) {
+        pct = Math.max(0, Math.min(100, pct));
+        els.compareAfter.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+        els.compareSlider.style.left = pct + "%";
+    }
+
+    function comparePctFromEvent(e) {
+        const rect = els.compareBefore.getBoundingClientRect();
+        if (rect.width === 0) return 50;
+        const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
+        const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+        return (x / rect.width) * 100;
+    }
+
+    function bindCompareSlider() {
+        let dragging = false;
+
+        const onMove = (e) => {
+            if (!dragging) return;
+            e.preventDefault();
+            setComparePosition(comparePctFromEvent(e));
+        };
+
+        const onEnd = () => { dragging = false; };
+
+        els.compareWrap.addEventListener("pointerdown", (e) => {
+            if (!els.compareContainer.classList.contains("visible")) return;
+            dragging = true;
+            els.compareWrap.setPointerCapture(e.pointerId);
+            setComparePosition(comparePctFromEvent(e));
+        });
+
+        els.compareWrap.addEventListener("pointermove", onMove);
+        els.compareWrap.addEventListener("pointerup", onEnd);
+        els.compareWrap.addEventListener("pointercancel", onEnd);
+    }
+
+    function exportPng() {
+        const link = document.createElement("a");
+        link.download = `verdor-${Date.now()}.png`;
+        link.href = els.canvas.toDataURL("image/png");
+        link.click();
+    }
+
+    function exportCsv() {
+        if (!state.lastResult) return;
+        const r = state.lastResult;
+        const rows = [
+            ["Campo", "Valor"],
+            ["Vegetación %", r.vegPct],
+            ["Otro %", r.otherPct],
+            ["Píxeles vegetación", r.vegCount],
+            ["Píxeles otro", r.otherCount],
+            ["Píxeles excluidos", r.excludedCount],
+            ["Píxeles analizados", r.analyzed],
+            ["Modo", r.mode],
+            ["Dimensiones", `${els.canvas.width}x${els.canvas.height}`],
+            ["Fecha", r.timestamp]
+        ];
+        const csv = rows.map(row => row.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const link = document.createElement("a");
+        link.download = `verdor-${Date.now()}.csv`;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    function createSwatch(color, container) {
+        const swatch = document.createElement("button");
+        swatch.type = "button";
+        swatch.className = "palette-swatch";
+        swatch.style.backgroundColor = `rgb(${color.r},${color.g},${color.b})`;
+        swatch.title = `RGB(${color.r}, ${color.g}, ${color.b})`;
+        swatch.colorObj = color;
+        swatch.addEventListener("click", () => toggleSwatch(swatch));
+        container.appendChild(swatch);
+        return swatch;
+    }
+
+    function renderPalettes() {
+        els.paletteActive.innerHTML = "";
+        els.paletteRemoved.innerHTML = "";
+        state.activeColors.forEach(c => createSwatch(c, els.paletteActive));
+        state.removedColors.forEach(c => createSwatch(c, els.paletteRemoved));
+    }
+
+    function toggleSwatch(swatch) {
+        const color = swatch.colorObj;
+        const parent = swatch.parentElement;
+        const isActive = parent.dataset.active === "active";
+
+        if (isActive) {
+            state.activeColors = state.activeColors.filter(c => c !== color);
+            state.removedColors.push(color);
+            els.paletteRemoved.appendChild(swatch);
+        } else {
+            state.removedColors = state.removedColors.filter(c => c !== color);
+            state.activeColors.push(color);
+            els.paletteActive.appendChild(swatch);
+        }
+        saveSettings();
+    }
+
+    function addColorToPalette(color) {
+        const exists = state.activeColors.some(c =>
+            c.r === color.r && c.g === color.g && c.b === color.b
+        );
+        if (exists) return;
+        state.activeColors.push(color);
+        createSwatch(color, els.paletteActive);
+        saveSettings();
+    }
+
+    function loadSavedPalettes() {
+        try {
+            const raw = localStorage.getItem(PALETTES_KEY);
+            if (!raw) return [];
+            const list = JSON.parse(raw);
+            if (!Array.isArray(list)) return [];
+            return list.filter(p => p && p.id && p.label);
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function persistSavedPalettes(list) {
+        try {
+            localStorage.setItem(PALETTES_KEY, JSON.stringify(list));
+        } catch (_) {
+            setStatus("No se pudo guardar la paleta (almacenamiento lleno o bloqueado).");
+        }
+    }
+
+    function applyPaletteColors(activeColors, removedColors) {
+        state.activeColors = activeColors.length ? cloneColors(activeColors) : cloneColors(DEFAULT_COLORS);
+        state.removedColors = cloneColors(removedColors);
+        renderPalettes();
+        saveSettings();
+    }
+
+    function applyDefaultPalette() {
+        applyPaletteColors(cloneColors(DEFAULT_COLORS), []);
+        els.paletteSaveLabel.value = "";
+        els.paletteSaveDesc.value = "";
+    }
+
+    function applyPalettePreset(preset) {
+        applyPaletteColors(
+            normalizePaletteColors(preset.activeColors),
+            normalizePaletteColors(preset.removedColors)
+        );
+        els.paletteSaveLabel.value = preset.label;
+        els.paletteSaveDesc.value = preset.description || "";
+        setStatus(`Paleta «${preset.label}» cargada (${state.activeColors.length} incluir, ${state.removedColors.length} ignorar).`);
+    }
+
+    function refreshPalettePresetDropdown(selectedId) {
+        const presets = loadSavedPalettes();
+        const current = selectedId || els.palettePresetSelect.value || "__default__";
+
+        els.palettePresetSelect.innerHTML = "";
+        const defaultOpt = document.createElement("option");
+        defaultOpt.value = "__default__";
+        defaultOpt.textContent = "Predeterminada (Google Earth)";
+        els.palettePresetSelect.appendChild(defaultOpt);
+
+        presets.sort((a, b) => a.label.localeCompare(b.label, "es"));
+        presets.forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            opt.textContent = p.description ? `${p.label} — ${p.description}` : p.label;
+            opt.title = [p.label, p.description].filter(Boolean).join("\n");
+            els.palettePresetSelect.appendChild(opt);
+        });
+
+        suppressPresetChange = true;
+        const exists = current === "__default__" || presets.some(p => p.id === current);
+        els.palettePresetSelect.value = exists ? current : "__default__";
+        suppressPresetChange = false;
+
+        els.btnDeletePalette.disabled = els.palettePresetSelect.value === "__default__";
+    }
+
+    function saveCurrentPalettePreset() {
+        const label = els.paletteSaveLabel.value.trim();
+        if (!label) {
+            setStatus("Escribe un nombre para guardar la paleta.");
+            els.paletteSaveLabel.focus();
+            return;
+        }
+
+        const description = els.paletteSaveDesc.value.trim();
+        let presets = loadSavedPalettes();
+        const existing = presets.find(p => p.label.toLowerCase() === label.toLowerCase());
+        const id = existing ? existing.id : `p_${Date.now()}`;
+
+        const preset = {
+            id,
+            label,
+            description,
+            activeColors: cloneColors(state.activeColors),
+            removedColors: cloneColors(state.removedColors),
+            savedAt: new Date().toISOString()
+        };
+
+        if (existing) {
+            Object.assign(existing, preset);
+        } else {
+            presets.push(preset);
+        }
+
+        persistSavedPalettes(presets);
+        refreshPalettePresetDropdown(id);
+        saveSettings();
+        setStatus(existing
+            ? `Paleta «${label}» actualizada.`
+            : `Paleta «${label}» guardada.`);
+    }
+
+    function deleteSelectedPalettePreset() {
+        const id = els.palettePresetSelect.value;
+        if (id === "__default__") return;
+
+        const presets = loadSavedPalettes();
+        const preset = presets.find(p => p.id === id);
+        if (!preset) return;
+
+        if (!confirm(`¿Eliminar la paleta «${preset.label}»?`)) return;
+
+        persistSavedPalettes(presets.filter(p => p.id !== id));
+        refreshPalettePresetDropdown("__default__");
+        applyDefaultPalette();
+        setStatus(`Paleta «${preset.label}» eliminada.`);
+    }
+
+    function onPalettePresetSelectChange() {
+        if (suppressPresetChange) return;
+
+        const id = els.palettePresetSelect.value;
+        els.btnDeletePalette.disabled = id === "__default__";
+
+        if (id === "__default__") {
+            applyDefaultPalette();
+            setStatus("Paleta predeterminada cargada.");
+            return;
+        }
+
+        const preset = loadSavedPalettes().find(p => p.id === id);
+        if (preset) applyPalettePreset(preset);
+    }
+
+    function resetPalette() {
+        suppressPresetChange = true;
+        els.palettePresetSelect.value = "__default__";
+        suppressPresetChange = false;
+        els.btnDeletePalette.disabled = true;
+        applyDefaultPalette();
+        saveSettings();
+        setStatus("Paleta predeterminada restaurada.");
+    }
+
+    function showEyedropperFloat(e, r, g, b) {
+        els.eyedropperFloatSwatch.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        els.eyedropperFloatRgb.innerHTML = `RGB ${r}, ${g}, ${b}<small>Clic para agregar</small>`;
+        els.eyedropperFloat.classList.remove("hidden");
+        els.eyedropperFloat.setAttribute("aria-hidden", "false");
+
+        const gap = 18;
+        const pad = 8;
+        els.eyedropperFloat.style.visibility = "hidden";
+        els.eyedropperFloat.style.left = "0";
+        els.eyedropperFloat.style.top = "0";
+
+        const w = els.eyedropperFloat.offsetWidth;
+        const h = els.eyedropperFloat.offsetHeight;
+
+        let left = e.clientX + gap;
+        let top = e.clientY + gap;
+        if (left + w > window.innerWidth - pad) left = e.clientX - w - gap;
+        if (top + h > window.innerHeight - pad) top = e.clientY - h - gap;
+        left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+        top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+
+        els.eyedropperFloat.style.left = left + "px";
+        els.eyedropperFloat.style.top = top + "px";
+        els.eyedropperFloat.style.visibility = "visible";
+    }
+
+    function hideEyedropperFloat() {
+        els.eyedropperFloat.classList.add("hidden");
+        els.eyedropperFloat.setAttribute("aria-hidden", "true");
+    }
+
+    function setTool(tool) {
+        state.tool = tool;
+        els.btnEyedropper.classList.toggle("active", tool === "eyedropper");
+        els.eyedropperGroup.classList.toggle("active", tool === "eyedropper");
+        els.btnBrushVeg.classList.toggle("active", tool === "brush-veg");
+        els.btnBrushNonveg.classList.toggle("active", tool === "brush-nonveg");
+        els.btnBrushErase.classList.toggle("active", tool === "brush-erase");
+        els.btnRoi.classList.toggle("active", tool === "roi");
+        els.overlay.classList.toggle("interactive", tool === "eyedropper" || tool === "brush-veg" || tool === "brush-nonveg" || tool === "brush-erase" || tool === "roi");
+        els.btnCalculate.disabled = tool === "eyedropper";
+        els.brushLegend.classList.toggle("hidden", !isBrushTool(tool));
+
+        if (tool !== "eyedropper") hideEyedropperFloat();
+        if (!tool) {
+            brushCursor = null;
+            drawOverlay();
+        }
+    }
+
+    function updateModeUI() {
+        const mode = els.algoMode.value;
+        document.body.dataset.mode = mode;
+        const isClassic = mode === "classic";
+        els.sensitivityGroup.classList.toggle("hidden", isClassic);
+        if (!isClassic && state.tool === "eyedropper") setTool(null);
+        saveSettings();
+    }
+
+    function saveSettings() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                mode: els.algoMode.value,
+                tolerance: +els.colorTolerance.value,
+                sensitivity: +els.sensitivity.value,
+                morph: +els.morphStrength.value,
+                excludeWhite: els.excludeWhite.checked,
+                useRoi: els.useRoi.checked,
+                activeColors: state.activeColors,
+                removedColors: state.removedColors,
+                selectedPresetId: els.palettePresetSelect.value
+            }));
+        } catch (_) { /* quota or private mode */ }
+    }
+
+    function loadSettings() {
+        state.activeColors = cloneColors(DEFAULT_COLORS);
+        state.removedColors = [];
+        let selectedPresetId = "__default__";
+
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (s.mode) els.algoMode.value = s.mode;
+                if (s.tolerance != null) els.colorTolerance.value = s.tolerance;
+                if (s.sensitivity != null) els.sensitivity.value = s.sensitivity;
+                if (s.morph != null) els.morphStrength.value = s.morph;
+                if (s.excludeWhite != null) els.excludeWhite.checked = s.excludeWhite;
+                if (s.useRoi != null) els.useRoi.checked = s.useRoi;
+                if (s.selectedPresetId) selectedPresetId = s.selectedPresetId;
+
+                const savedActive = normalizePaletteColors(s.activeColors);
+                const savedRemoved = normalizePaletteColors(s.removedColors);
+                if (savedActive.length || savedRemoved.length) {
+                    state.activeColors = savedActive.length ? savedActive : cloneColors(DEFAULT_COLORS);
+                    state.removedColors = savedRemoved;
+                }
+            }
+        } catch (_) {
+            localStorage.removeItem(STORAGE_KEY);
+        }
+
+        if (state.activeColors.length === 0) {
+            state.activeColors = cloneColors(DEFAULT_COLORS);
+        }
+
+        els.toleranceOut.textContent = els.colorTolerance.value;
+        els.sensitivityOut.textContent = els.sensitivity.value;
+        els.morphOut.textContent = els.morphStrength.value;
+        updateModeUI();
+        renderPalettes();
+        refreshPalettePresetDropdown(selectedPresetId);
+
+        if (selectedPresetId !== "__default__") {
+            const preset = loadSavedPalettes().find(p => p.id === selectedPresetId);
+            if (preset) {
+                els.paletteSaveLabel.value = preset.label;
+                els.paletteSaveDesc.value = preset.description || "";
+            }
+        }
+    }
+
+    // --- Event listeners ---
+
+    els.dropZone.addEventListener("dragover", e => { e.preventDefault(); els.dropZone.classList.add("dragover"); });
+    els.dropZone.addEventListener("dragleave", () => els.dropZone.classList.remove("dragover"));
+    els.dropZone.addEventListener("drop", e => {
+        e.preventDefault();
+        els.dropZone.classList.remove("dragover");
+        if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    els.fileInput.addEventListener("change", () => {
+        if (els.fileInput.files[0]) handleFile(els.fileInput.files[0]);
+    });
+
+    els.algoMode.addEventListener("change", updateModeUI);
+    els.colorTolerance.addEventListener("input", () => {
+        els.toleranceOut.textContent = els.colorTolerance.value;
+        saveSettings();
+    });
+    els.sensitivity.addEventListener("input", () => {
+        els.sensitivityOut.textContent = els.sensitivity.value;
+        saveSettings();
+    });
+    els.morphStrength.addEventListener("input", () => {
+        els.morphOut.textContent = els.morphStrength.value;
+        saveSettings();
+    });
+    els.excludeWhite.addEventListener("change", saveSettings);
+    els.useRoi.addEventListener("change", saveSettings);
+    els.brushSize.addEventListener("input", () => {
+        els.brushOut.textContent = els.brushSize.value;
+    });
+
+    els.btnCalculate.addEventListener("click", runCalculation);
+    els.btnRevert.addEventListener("click", () => {
+        revertCanvas(true);
+        setStatus("Imagen y correcciones de pincel restauradas.");
+    });
+    els.btnExportPng.addEventListener("click", exportPng);
+    els.btnExportCsv.addEventListener("click", exportCsv);
+
+    els.btnEyedropper.addEventListener("click", () => {
+        if (els.algoMode.value !== "classic") {
+            setStatus("El gotero solo funciona en modo Clásico (paleta de colores).");
+            return;
+        }
+        if (!state.imageLoaded) {
+            setStatus("Carga una imagen antes de usar el gotero.");
+            return;
+        }
+        const on = state.tool !== "eyedropper";
+        setTool(on ? "eyedropper" : null);
+        if (on) {
+            setStatus("Vista previa del color sigue al cursor. Clic en el canvas para agregar.");
+        }
+    });
+    els.btnBrushVeg.addEventListener("click", () => {
+        const on = state.tool !== "brush-veg";
+        setTool(on ? "brush-veg" : null);
+        if (on) setStatus("Pincel + Veg: pinta en verde sobre la imagen y pulsa Calcular.");
+    });
+    els.btnBrushNonveg.addEventListener("click", () => {
+        const on = state.tool !== "brush-nonveg";
+        setTool(on ? "brush-nonveg" : null);
+        if (on) setStatus("Pincel − Veg: pinta en rojo las zonas a excluir y pulsa Calcular.");
+    });
+    els.btnBrushErase.addEventListener("click", () => {
+        const on = state.tool !== "brush-erase";
+        setTool(on ? "brush-erase" : null);
+        if (on) setStatus("Borrador: quita marcas verdes o rojas del pincel.");
+    });
+    els.btnRoi.addEventListener("click", () => {
+        setTool(state.tool === "roi" ? null : "roi");
+    });
+    els.btnClearRoi.addEventListener("click", () => {
+        state.roi = null;
+        drawOverlay();
+        saveSettings();
+    });
+
+    els.btnPaletteAllRight.addEventListener("click", () => {
+        state.removedColors.push(...state.activeColors);
+        state.activeColors = [];
+        renderPalettes();
+        saveSettings();
+    });
+    els.btnPaletteAllLeft.addEventListener("click", () => {
+        state.activeColors.push(...state.removedColors);
+        state.removedColors = [];
+        renderPalettes();
+        saveSettings();
+    });
+    els.btnPaletteReset.addEventListener("click", resetPalette);
+    els.palettePresetSelect.addEventListener("change", onPalettePresetSelectChange);
+    els.btnSavePalette.addEventListener("click", saveCurrentPalettePreset);
+    els.btnDeletePalette.addEventListener("click", deleteSelectedPalettePreset);
+    els.paletteSaveLabel.addEventListener("keydown", e => {
+        if (e.key === "Enter") saveCurrentPalettePreset();
+    });
+
+    els.overlay.addEventListener("mousemove", e => {
+        if (!state.imageLoaded) return;
+        const { x, y } = getCanvasCoords(e);
+
+        if (state.tool === "eyedropper") {
+            const p = ctx.getImageData(x, y, 1, 1).data;
+            eyedropperColor = { r: p[0], g: p[1], b: p[2] };
+            showEyedropperFloat(e, p[0], p[1], p[2]);
+        }
+
+        if (brushPainting && isBrushTool(state.tool)) {
+            const mode = state.tool === "brush-veg" ? 1 : state.tool === "brush-nonveg" ? 2 : 0;
+            paintBrush(x, y, mode);
+            brushCursor = { x, y };
+            drawBrushCursor(x, y);
+            return;
+        }
+
+        if (isBrushTool(state.tool)) {
+            brushCursor = { x, y };
+            refreshOverlay(brushCursor);
+        }
+
+        if (roiDrag) {
+            roiDrag.x1 = x;
+            roiDrag.y1 = y;
+            drawOverlay();
+        }
+    });
+
+    els.overlay.addEventListener("mousedown", e => {
+        if (!state.imageLoaded) return;
+        const { x, y } = getCanvasCoords(e);
+
+        if (state.tool === "roi") {
+            roiDrag = { x0: x, y0: y, x1: x, y1: y };
+            drawOverlay();
+            return;
+        }
+
+        if (isBrushTool(state.tool)) {
+            brushPainting = true;
+            const mode = state.tool === "brush-veg" ? 1 : state.tool === "brush-nonveg" ? 2 : 0;
+            paintBrush(x, y, mode);
+            brushCursor = { x, y };
+            drawBrushCursor(x, y);
+        }
+    });
+
+    els.overlay.addEventListener("click", e => {
+        if (!state.imageLoaded || state.tool !== "eyedropper") return;
+        const { x, y } = getCanvasCoords(e);
+        const p = ctx.getImageData(x, y, 1, 1).data;
+        eyedropperColor = { r: p[0], g: p[1], b: p[2] };
+        showEyedropperFloat(e, p[0], p[1], p[2]);
+        addColorToPalette({ ...eyedropperColor });
+        setStatus(`Color RGB(${p[0]}, ${p[1]}, ${p[2]}) agregado a la paleta.`);
+    });
+
+    els.overlay.addEventListener("mouseup", e => {
+        if (state.tool === "eyedropper") return;
+
+        if (roiDrag && state.tool === "roi") {
+            const x = Math.min(roiDrag.x0, roiDrag.x1);
+            const y = Math.min(roiDrag.y0, roiDrag.y1);
+            const w = Math.abs(roiDrag.x1 - roiDrag.x0);
+            const h = Math.abs(roiDrag.y1 - roiDrag.y0);
+            roiDrag = null;
+            if (w > 4 && h > 4) {
+                state.roi = { x, y, w, h };
+                els.useRoi.checked = true;
+                saveSettings();
+                setStatus(`Área seleccionada: ${w}×${h} px.`);
+            }
+            drawOverlay();
+            return;
+        }
+
+        brushPainting = false;
+        if (isBrushTool(state.tool) && countBrushMarks() > 0) {
+            setStatus(`${countBrushMarks().toLocaleString()} píxeles corregidos. Pulsa Calcular para aplicar al porcentaje.`);
+        }
+    });
+
+    els.overlay.addEventListener("mouseleave", () => {
+        brushPainting = false;
+        brushCursor = null;
+        if (state.tool === "eyedropper") hideEyedropperFloat();
+        if (isBrushTool(state.tool)) drawOverlay();
+        if (roiDrag && state.tool === "roi") {
+            roiDrag = null;
+            drawOverlay();
+        }
+    });
+
+    // Compare slider drag
+    bindCompareSlider();
+
+    loadSettings();
+})();
 </script>
-
 </body>
 </html>

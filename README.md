@@ -1,35 +1,84 @@
 # verdor
 
-Herramienta para calcular el porcentaje de vegetación en una imagen satelital
+Herramienta web para calcular el porcentaje de vegetación en imágenes satelitales. Un solo archivo HTML, sin instalación ni dependencias externas.
 
 ![Verdor](/assets/Verdor.png)
 
+## Uso online
 
+[Abrir Verdor](https://raw.githack.com/jeremythen/verdor/main/verdor.html)
 
-## Uso
+También puedes clonar el repositorio y abrir `verdor.html` directamente en el navegador.
 
-Puedes usar la herramienta online aquí: [https://raw.githack.com/jeremythen/verdor/main/verdor.html](https://raw.githack.com/jeremythen/verdor/main/verdor.html)
+## Imágenes recomendadas
 
-Para usar este algoritmo, necesitamos cargar una imagen satelital, preferiblemente de Google Earth. A una altura recomendada entre 300 metros y 2000 metros.
+Funciona mejor con capturas de **Google Earth** (u otras fuentes aéreas) tomadas entre **300 m y 2000 m** de altura.
 
-Por ejemplo esta captura de imagen satelital fue tomada a una altura de más o menos 700 metros:
+Por ejemplo, esta captura fue tomada a unos 700 m:
 
 ![Verdor uso](/assets/Verdor_uso.png)
 
-Le damos click a "Subir Imagen" y se va a cargar en una vista previa y también se cargará en el canvas. La vista previa arriba es para tener una referencia de la imagen original mientras trabajamos con la imagen en el canvas, que es donde se hará el cálculo y se tomarán las muestras de los pixeles.
+Arrastra la imagen a la zona de carga o haz clic para seleccionarla. Se mostrará una vista previa de referencia y el canvas de trabajo, donde se realiza el análisis.
 
-Luego podemos darle click a Calcular!
+## Modos de detección
 
-Esto hará el cálculo del porcentaje de vegetación y mostrará la imagen del canvas con un mismo color verde sólido las partes que el algoritmo haya detectado como vegetación, y con el color original las partes que haya detectado como no vegetación. Si quitamos la marca en "Excluir blanco", y damos a Calcular! de nuevo, observaremos que que todos los pixeles en el canvas se reemplazarían por solo dos colores, verde los que fueron detectados como vegetación, y blanco todo lo demás. Esto es últil utilizarlo en alguna presentación indicando que vegetación es lo verde y lo blanco todo lo que no fue considerado vegetación.
+Verdor ofrece tres algoritmos:
 
-Si hacemos el cálculo con la imagen de ejemplo mostrada más arriba:
+| Modo | Descripción |
+|------|-------------|
+| **Clásico** | Compara cada píxel con una paleta de colores típicos de vegetación en Google Earth. Permite ajuste fino con gotero y paleta editable. |
+| **ExG** | Índice *Excess Green* (`2G − R − B`). Automático, útil como punto de partida sin configurar colores. |
+| **HSV** | Detecta vegetación por matiz verde y saturación. También automático. |
+
+En todos los modos puedes ajustar **limpieza de ruido** (post-procesado morfológico) y la opción **Excluir blanco** (mantener el color original en zonas no vegetación, ideal para ver qué falta detectar).
+
+## Flujo básico
+
+1. Carga una imagen.
+2. Elige un modo de detección y ajusta parámetros si hace falta.
+3. Pulsa **Calcular**.
+4. Revisa el porcentaje en **Resultados** y la comparación antes/después (arrastra la barra central).
+
+Tras calcular, el canvas muestra en verde la vegetación detectada. Con **Excluir blanco** activo, el resto conserva su color original; si lo desactivas, las zonas no vegetación se pintan de blanco (útil para presentaciones).
+
+Puedes exportar el resultado con **↓ PNG** o los datos con **↓ CSV**.
+
+## Afinar el resultado
+
+### Gotero y paleta (modo clásico)
+
+Si el cálculo inicial no cubre toda la vegetación visible:
 
 ![Verdor uso con cálculo inexacto](/assets/verdor_uso_calculo_inexacto.png)
 
-Podemos observar claramente que el algoritmo no está incluyendo áreas que sabemos y vemos que es vegetación. Esto puede suceder con cualquier imagen, ya que la calidad de las imágenes satelitales no es muy buena y hay pixeles de vegetacion con colores que no contamos en la paleta de colores de ejemplo. Para remediar esto, podemos usar el ícono del gotero para manualmente seleccionar el canvas colores que sabemos que deben ser incluídos:
+Activa el **gotero**, pasa el mouse sobre la imagen (verás una vista previa del color junto al cursor) y haz clic para agregar colores a la paleta **Incluir**. También puedes mover colores entre **Incluir** e **Ignorar** con un clic.
 
 ![Verdor uso con cálculo más exacto](/assets/verdor_uso_calculo_mas_exacto.png)
 
-Luego de seleccionar los pixeles de vegetación, entonces le damos click a Revertir y a Calcular! y podemos observar que el resultado es más exacto, que está cubriendo la vegetación que sabemos que debe de cubrir. En este caso, si estamos conformes con los resultados, podemos dar click derecho sobre el canvas y descargar la imagen, o darle a "Excluir blanco", Revertir y Calcular! de nuevo para que se cree una imagen a verde y blanco.
+Pulsa **Calcular** de nuevo. Si el resultado te convence, exporta con **↓ PNG** o activa **Excluir blanco**, **↺ Revertir** y **Calcular** para obtener una imagen solo verde y blanco.
 
-Entonces, podemos utilizar el porcentaje arrojado por Verdor.
+### Paletas guardadas
+
+Cuando ajustes una paleta que funciona bien para un tipo de imagen, guárdala con un **nombre** y **descripción**. En capturas similares, selecciónala en el desplegable **Paleta guardada** para cargarla al instante. Las paletas se almacenan en el navegador (`localStorage`).
+
+### Pinceles de corrección
+
+Si quedan zonas mal clasificadas:
+
+- **+ Veg** — fuerza vegetación (marca verde).
+- **− Veg** — fuerza no vegetación (marca roja).
+- **Borrar** — quita marcas de pincel.
+
+Las marcas se ven al pintar; pulsa **Calcular** para aplicarlas al porcentaje.
+
+### Área de interés
+
+Con **▭ Área** dibuja un rectángulo para analizar solo una zona. Marca **Limitar cálculo al área seleccionada** para que el porcentaje ignore el resto de la imagen.
+
+## Persistencia
+
+Verdor recuerda en el navegador tu último modo, parámetros, paleta activa y paletas guardadas. **↺ Revertir** restaura la imagen original y borra correcciones de pincel; **↺ Paleta** vuelve a los 27 colores predeterminados de Google Earth.
+
+## Requisitos
+
+Navegador moderno con soporte para Canvas y `localStorage`. No requiere conexión después de la primera carga del archivo (salvo si abres la versión online).
